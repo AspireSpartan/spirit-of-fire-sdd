@@ -1,0 +1,5 @@
+{
+  "allowedBranches": ["main", "develop", "feature/*"],
+  "notebookReminderTokens": 80000,
+  "handoff": "gated"
+}
