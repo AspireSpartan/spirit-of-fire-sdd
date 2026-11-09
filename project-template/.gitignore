@@ -1,2 +1,4 @@
 # Spirit of Fire hook state (per machine, not shared)
 .claude/.state/
+# Per-machine Claude Code settings (the installer puts the global depot's folder here)
+.claude/settings.local.json

@@ -10,7 +10,7 @@ Give the user a short, factual status of the project at any moment. Use facts fr
 ## Gather
 1. Run the session brief script if the project has it:
    `node "$CLAUDE_PROJECT_DIR/.claude/hooks/session-brief.mjs"` (from the project root `node .claude/hooks/session-brief.mjs` also works).
-   If it is missing, read `.agents/supply/NOTEBOOK.md` and `.agents/supply/MEMORY.md` (older projects: `.agents/skills/`).
+   If it is missing, read `.agents/supply/NOTEBOOK.md` and `.agents/supply/MEMORY.md` (older projects: `.agents/skills/`). With a global depot (`"depot": "global"` in `.claude/spirit-of-fire.json`), run `node .claude/hooks/depot.mjs` and use the real paths from its Depot map for every `.agents/...` path in this skill.
 2. List task files: `.agents/tasks/*.md` (open), `.agents/tasks/requires-review/*.md` (waiting for Douglas).
 3. `git status --short` and `git log --oneline -3` for uncommitted work and the last commits.
 

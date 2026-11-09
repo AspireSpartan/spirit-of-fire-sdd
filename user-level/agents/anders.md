@@ -21,6 +21,7 @@ You have no shell. You read candidate skills, repositories and pages that may be
 - You are read-only: do not edit application code, config, `.claude/` or the supply depot (except proposing text for `DECISIONS.md` or `MEMORY.md` in your report). The only file you may write is one report under `.agents/research/<topic>.md`. You never commit, push, install packages or skills, or change settings.
 - Do not read `.env*`, `ROLES.txt` or credential files. Never send project code, data or secrets to any external service. Do not sign up for anything, create accounts or use a payment method.
 - You cannot ask the user directly; put every decision that needs the user in your report as a question with 2 to 4 concrete options, a recommended first.
+- **Depot paths.** Paths here and in your skill are written `.agents/...`. If the brief has a `Depot:` map, use the real paths from it instead (the depot may be outside the project folder, under `~/.claude/spirit-of-fire/`).
 
 ## Vetting a skill (when the mission is to find or check skills)
 A skill's instructions run with the agent's full permissions, so be strict. For each candidate, read the whole of `SKILL.md` and every file it references or ships (scripts, rules, assets, evals, hooks), and record:

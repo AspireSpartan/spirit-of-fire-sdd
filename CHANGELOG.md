@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.4: choose where the supply depot lives, 2026-11-09
+
+Specs, tasks and memory no longer have to be committed with the code.
+
+### New
+- **Depot question in the installer:** *in the project, committed* (as before), *in the project, ignored by git* (`.agents/` added to `.gitignore`), or *global, by project and branch* (`~/.claude/spirit-of-fire/<owner-repo>/`). `-Depot Project|ProjectIgnored|Global` and `-DepotName` skip the questions. The choice is saved as `depot` (and `depotName`) in `.claude/spirit-of-fire.json`.
+- **Global depot layout:** `RULES.md`, `MEMORY.md`, `DECISIONS.md`, `policies/`, `research/` and `archive/` are shared by all branches; `branches/<branch>/` holds each branch's `NOTEBOOK.md`, `specs/` and `tasks/`. A branch's folder is created with an empty notebook the first time a session starts on it.
+- **`.claude/hooks/depot.mjs`** works out the depot and branch folder. The session brief prints a **Depot map** (`.agents/...` path → real path); `node .claude/hooks/depot.mjs` prints it after a branch switch.
+- **Archive a branch** mission: "<branch> is merged, archive it" moves its folder to `archive/<branch>/` (only on the user's word, never guessed from git).
+- **Moving to global:** an existing `.agents/` is copied into the depot (never moved or overwritten); the installer prints the `git rm -r --cached .agents` command if it was tracked.
+- The installer adds the depot to `permissions.additionalDirectories` in `.claude/settings.local.json` (per machine, now in `.gitignore`).
+- A `CLAUDE.md` from another setup is no longer only skipped: the installer shows the loader lines and asks before adding them (with a backup).
+
+### Changed
+- **`CPT_CUTTER.md` moved to `.claude/CPT_CUTTER.md`.** `CLAUDE.md` now loads it plus `RULES.md` and `MEMORY.md` (and `NOTEBOOK.md` for an in-project depot) directly, so the loader can point at a global depot. A v0.3 loader (`@.agents/CPT_CUTTER.md`) is updated automatically with a backup; delete the old `.agents/CPT_CUTTER.md` afterwards.
+- Cutter copies the Depot map into every mission brief; Jerome, Alice, Douglas, Anders and `sitrep` use it when the depot is global. Skills still write `.agents/...` paths.
+
 ## v0.3.1: choose global or project only, 2026-11-09
 
 ### New

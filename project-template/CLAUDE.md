@@ -4,4 +4,7 @@
 
 This project uses the **Spirit of Fire** SDD workflow. Captain Cutter's standing orders are below; follow them every session.
 
-@.agents/CPT_CUTTER.md
+@.claude/CPT_CUTTER.md
+@.agents/supply/RULES.md
+@.agents/supply/MEMORY.md
+@.agents/supply/NOTEBOOK.md

@@ -4,14 +4,10 @@
 // without the user having to say "read the notebook".
 // Never fails the session: any error just prints a shorter brief.
 import { readFileSync, existsSync } from 'node:fs';
-import { execSync } from 'node:child_process';
 import { join } from 'node:path';
+import { resolveDepot, ensureBranchFolder, mapLines } from './depot.mjs';
 
 const root = process.env.CLAUDE_PROJECT_DIR || process.cwd();
-
-function firstExisting(...paths) {
-  return paths.map((p) => join(root, p)).find((p) => existsSync(p));
-}
 
 function section(text, heading) {
   const lines = text.split(/\r?\n/);
@@ -25,14 +21,15 @@ function section(text, heading) {
   return body.join('\n').trim() || null;
 }
 
-let branch = 'unknown';
+const depot = resolveDepot(root);
+const branch = depot.branch.name;
+let newBranchFolder = false;
 try {
-  branch = execSync('git branch --show-current', { cwd: root, stdio: ['ignore', 'pipe', 'ignore'] })
-    .toString()
-    .trim() || 'detached HEAD';
+  newBranchFolder = ensureBranchFolder(depot);
 } catch {
-  branch = 'not a git repository';
+  // a read-only or missing home folder never fails the session
 }
+const existing = (path) => (existsSync(path) ? path : null);
 
 // Hand-off mode from .claude/spirit-of-fire.json: "gated" (stop after each stage) or "auto". Default gated.
 let handoff = 'gated';
@@ -48,22 +45,34 @@ try {
 
 const out = ['SESSION BRIEF (automatic, from the supply depot)', `Branch: ${branch}`, `Hand-off mode: ${handoff}`];
 
-const notebookPath = firstExisting('.agents/supply/NOTEBOOK.md', '.agents/skills/NOTEBOOK.md');
+if (depot.mode === 'global') {
+  if (!depot.exists) {
+    out.push('', `Depot folder not found: ${depot.base}. Tell the user to run install.ps1 for this project (depot: global).`);
+  } else {
+    out.push('', ...mapLines(depot));
+    out.push('Copy the Depot map into every mission brief. After a branch switch, run `node .claude/hooks/depot.mjs` for the new map.');
+    if (newBranchFolder) out.push(`First session on this branch: created its folder with an empty notebook.`);
+  }
+} else if (depot.mode === 'project-ignored') {
+  out.push('Depot: in the project (.agents/), ignored by git.');
+}
+
+const notebookPath = existing(depot.files.notebook);
 if (notebookPath) {
   const notebook = readFileSync(notebookPath, 'utf8');
   out.push('', 'Notebook - In progress:', section(notebook, 'In progress') || '(section missing)');
   out.push('', 'Notebook - Next:', section(notebook, 'Next') || '(section missing)');
 } else {
-  out.push('', 'No NOTEBOOK.md found in .agents/supply/ or .agents/skills/.');
+  out.push('', `No NOTEBOOK.md found at ${depot.files.notebook}.`);
 }
 
-const rulesPath = firstExisting('.agents/supply/RULES.md', '.agents/skills/RULES.md');
+const rulesPath = existing(depot.files.rules);
 // The template's RULES.md carries a marker line; the setup mission removes it.
 if (rulesPath && readFileSync(rulesPath, 'utf8').includes('sof:template')) {
   out.push('', 'RULES.md is not filled in (still the template). Recommend the first mission: Jerome with sdd-setup.');
 }
 
-const memoryPath = firstExisting('.agents/supply/MEMORY.md', '.agents/skills/MEMORY.md');
+const memoryPath = existing(depot.files.memory);
 if (memoryPath) {
   const match = readFileSync(memoryPath, 'utf8').match(/Highest TASK number:\s*(\d+)/i);
   if (match) out.push('', `Highest TASK number: ${match[1]} (next task: ${Number(match[1]) + 1})`);
