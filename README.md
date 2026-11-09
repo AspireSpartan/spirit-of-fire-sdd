@@ -12,10 +12,12 @@ A reusable **spec-driven development (SDD)** setup for Claude Code, for any full
 | **Douglas** | `douglas` agent | **Reviewer and Auditor**: reviews finished work in a browser (Playwright), and **audits** an existing module before fixes are planned. Approves or sends it back. | Sonnet |
 | **Professor Anders** | `anders` agent | **Researcher and Skill vetter**: finds facts outside the repo, and finds and vets new skills before anything is installed. Read-only, no shell. | Sonnet |
 | **Marines** | Cutter himself, using the `sdd-marine` skill | Small fixes: plan, code and check in one pass | your session model |
-| **Supply depot** | `.agents/` in each project | Rules, memory, notebook, **decisions**, policies, specs, tasks: what every unit reads first | |
+| **Supply depot** | `.agents/` in each project, or a global folder per project and branch | Rules, memory, notebook, **decisions**, policies, specs, tasks: what every unit reads first | |
 | **Armory** | `~/.claude/skills/` | Skills any unit can pick up (debug, architecture, testing-strategy, ...) | |
 
-**In one sentence:** you give the order, Cutter decides whether the Marines handle it or the Spartans (Jerome, then Alice, then Douglas) take it, and every job leaves a written record in `.agents/`.
+**In one sentence:** you give the order, Cutter decides whether the Marines handle it or the Spartans (Jerome, then Alice, then Douglas) take it, and every job leaves a written record in the supply depot.
+
+**New in v0.4** (see `CHANGELOG.md`): the installer asks **where to install** (globally or this project only) and **where the supply depot lives**: in the project and committed, in the project but ignored by git, or in a **global folder per project and branch**, outside the repository, so specs and memory are never committed and every branch's work can be read without switching branches.
 
 **New in v0.3** (lower usage, see `CHANGELOG.md`): agents read less (short memory capped by words, a **Context** block in every task instead of the whole spec), tests run cheaper (affected tests while working, the full gate once), reports back are short, Jerome plans at medium effort, Cutter suggests fresh sessions, and **Professor Anders** vets every outside skill. The accuracy rules are unchanged.
 
@@ -28,22 +30,23 @@ A reusable **spec-driven development (SDD)** setup for Claude Code, for any full
 ```
 Spirit-of-Fire-SDD/
 ├── README.md                  ← you are here
-├── install.ps1                ← asks: global or project only, then copies everything into place (never overwrites; -Update replaces framework files after a backup)
+├── install.ps1                ← asks: global or project only, and where the depot lives; then copies (never overwrites; -Update replaces framework files after a backup)
 ├── user-level/                ← install ONCE for your Windows user; shared by all projects
 │   ├── agents/                    jerome.md, alice.md, douglas.md (reviews and audits), anders.md (research, skill vetting)
 │   └── skills/                    sdd-setup, sdd-audit, sdd-plan, sdd-code, sdd-review (+ demo tour), sdd-marine, sitrep, find-skills (Anders only)
 └── project-template/          ← copy into EACH project
-    ├── CLAUDE.md                  short loader: points to Cutter's orders
-    ├── .gitignore                 ignores the hooks' per-machine state
+    ├── CLAUDE.md                  short loader: Cutter's orders + RULES and MEMORY from the depot
+    ├── .gitignore                 ignores the hooks' per-machine state and settings.local.json
     ├── .claude/
+    │   ├── CPT_CUTTER.md          the commander's standing orders (was .agents/CPT_CUTTER.md)
     │   ├── settings.json          turns on the 3 hooks below
-    │   ├── spirit-of-fire.json    YOUR settings: allowed branches, notebook reminder level, hand-off mode
+    │   ├── spirit-of-fire.json    YOUR settings: allowed branches, notebook reminder level, hand-off mode, depot
     │   └── hooks/
-    │       ├── session-brief.mjs      session start: branch + notebook "In progress"/"Next"
+    │       ├── session-brief.mjs      session start: branch, depot map, notebook "In progress"/"Next"
+    │       ├── depot.mjs              works out where the depot is (project or global, which branch)
     │       ├── branch-guard.mjs       blocks push/merge/PR to branches not on your list
     │       └── notebook-reminder.mjs  offers to write the notebook when context gets full
-    └── .agents/
-        ├── CPT_CUTTER.md          the commander's standing orders
+    └── .agents/                   the supply depot (in the project, or copied to the global folder)
         ├── supply/                RULES.md, MEMORY.md, NOTEBOOK.md, DECISIONS.md
         ├── policies/              your company, client or personal rules (empty; Jerome asks at setup)
         ├── specs/                 one folder per request
@@ -75,13 +78,17 @@ Open PowerShell in this folder and run:
 .\install.ps1
 ```
 
-It asks two questions, then shows a preview before it copies anything:
+It asks three questions, then shows a preview before it copies anything:
 
 1. **Where to install:**
    - **[1] Globally:** the Spartans and skills go to `C:\Users\<you>\.claude\` and every project on this computer sees them. The commander, supply depot and hooks go into the project you name. Pick this when Spirit of Fire is your only SDD setup.
    - **[2] Project only:** everything goes inside the project, including the Spartans and skills (to `<project>\.claude\agents\` and `<project>\.claude\skills\`). Nothing is written to your user folder. Pick this to try Spirit of Fire, or when you run **another SDD setup** in other projects, so the two never mix.
 2. **Which project folder** (Enter uses the current folder). For a global install you can type `-` to install only the agents and skills.
-3. **The preview** lists what is already there with the same name: Spartans, skills, `CLAUDE.md`, `.claude\settings.json`, `.claude\hooks` and `.agents\`. Those are skipped, never overwritten. For a project-only install it also warns when your user folder has a Spartan or skill of the same name, because Claude Code may use that copy instead. Type `Y` to go on or `N` to stop with nothing copied.
+3. **Where the supply depot lives** (rules, memory, notebook, specs, tasks). See "Where the supply depot lives" below:
+   - **[1] In the project, committed** (`.agents\`, the v0.3 layout).
+   - **[2] In the project, ignored by git**: `.agents/` is added to `.gitignore`.
+   - **[3] Global folder, by project and branch**: `C:\Users\<you>\.claude\spirit-of-fire\<owner-repo>\`, outside the repository. It also asks the folder name (Enter keeps `owner-repo` from the git remote).
+4. **The preview** lists what is already there with the same name: Spartans, skills, `CLAUDE.md`, `.claude\settings.json`, `.claude\hooks` and `.agents\`. Those are skipped, never overwritten. For a project-only install it also warns when your user folder has a Spartan or skill of the same name, because Claude Code may use that copy instead. Type `Y` to go on or `N` to stop with nothing copied.
 
 **Trying it next to another SDD setup?** Use project only, on a separate git branch or worktree of the project, and check the preview. If it lists `CLAUDE.md` or `.claude\settings.json`, Spirit of Fire or its hooks won't load until you merge them (see "already has a CLAUDE.md" below).
 
@@ -91,9 +98,53 @@ It asks two questions, then shows a preview before it copies anything:
 .\install.ps1 -Scope Global  -Project "D:\path\to\your-project"   # global agents + skills, and this project
 .\install.ps1 -Scope Global                                         # global agents + skills only
 .\install.ps1 -Scope Project -Project "D:\path\to\your-project"   # everything inside this project
+.\install.ps1 -Scope Project -Project "D:\path\to\your-project" -Depot Global           # ... with a global depot
+.\install.ps1 -Scope Global  -Project "D:\path\to\your-project" -Depot ProjectIgnored   # depot in the project, not committed
 ```
 
+`-Depot` is `Project` (default), `ProjectIgnored` or `Global`; `-DepotName <name>` sets the global folder's name.
+
 The older `-UserLevel` and `-Project "<path>"` options still work and mean a global install, as before.
+
+### Where the supply depot lives
+
+Pick it once per project in the installer; it is saved as `depot` in `.claude/spirit-of-fire.json`.
+
+| Choice | Where | Committed? | Good for |
+|---|---|---|---|
+| **In the project, committed** (`project`) | `<project>\.agents\` | yes | a team that wants specs and tasks in the repo |
+| **In the project, ignored** (`project-ignored`) | `<project>\.agents\`, listed in `.gitignore` | no | keeping it private; git leaves ignored files alone, so every branch sees the same files |
+| **Global** (`global`) | `C:\Users\<you>\.claude\spirit-of-fire\<owner-repo>\` | no, outside the repo | private files, one set per branch, readable from any branch or worktree |
+
+**The global layout**, for example a repo `acme/er-tool` with branches `main` and `SEMI-CLOUD-123/login`:
+
+```
+D:\work\er-tool\                       the project: no private files in it
+├── CLAUDE.md                          @.claude/CPT_CUTTER.md + RULES and MEMORY from the depot
+└── .claude\
+    ├── CPT_CUTTER.md, settings.json, spirit-of-fire.json, hooks\
+    ├── settings.local.json            lets Claude Code use the depot folder (per machine, not committed)
+    └── agents\  skills\               only for a project-only install
+
+C:\Users\you\.claude\spirit-of-fire\acme-er-tool\
+├── RULES.md  MEMORY.md  DECISIONS.md  shared by every branch
+├── policies\  research\               shared
+├── archive\                           finished tasks, and merged branches
+│   └── SEMI-CLOUD-120-reports\
+└── branches\
+    ├── main\                          NOTEBOOK.md, specs\, tasks\ (requires-review\, evidence\)
+    └── SEMI-CLOUD-123-login\          "/" in a branch name becomes "-"
+```
+
+How it works:
+- **Rules, memory and decisions are shared**, because they describe the whole project: a decision made on one branch is still known on `main`. Task numbers stay unique across branches.
+- **Each branch has its own notebook, specs and tasks.** The session brief hook finds the branch's folder at every start and creates it with an empty notebook the first time you open a new branch. You never type a path.
+- **Read another branch's work without switching:** *"read the login spec from SEMI-CLOUD-123"*. Cutter opens it straight from the depot.
+- **Skills keep saying `.agents/...`.** The session brief prints a **Depot map** from those paths to the real ones, and Cutter puts it in every mission brief. After a branch switch inside a session, Cutter runs `node .claude/hooks/depot.mjs` for the new map.
+- **After a merge, say** *"SEMI-CLOUD-123 is merged, archive it"*. Cutter moves its folder to `archive\SEMI-CLOUD-123-login\`, adds one line to `MEMORY.md` and asks before moving any task that is still open. Nothing is archived on a guess.
+- **Moving an existing project to global:** run the installer and pick Global. Your `.agents\` is **copied** into the depot (specs and open tasks into the current branch's folder, archived tasks into `archive\`); nothing is moved, deleted or overwritten. Check the depot, then delete `.agents\` yourself. If `.agents\` was committed, the installer prints the `git rm -r --cached .agents` command to stop tracking it.
+- **First session:** Claude Code asks once whether `CLAUDE.md` may load files from outside the project (the depot). Say yes.
+- **It lives only on this computer.** A teammate, another computer or a cloud session does not see it; a new clone gets an empty branch folder once you run the installer there. To back it up or share it between your computers, make the depot folder its own private git repo.
 
 ### Step 2: Finish the setup in the project
 
@@ -116,9 +167,9 @@ Then, in that project:
    Everything not on the list is blocked. Leave the list empty (`[]`) to turn the guard off.
 5. **Restart Claude Code** so the branch list takes effect for the hooks.
 
-**The project already has a `CLAUDE.md` or `.agents/`?** The installer skips those files. Easiest: ask Cutter for the setup mission. Jerome carries every old rule into `RULES.md` and lists anything that didn't fit. Or merge by hand:
-- Move what your old `CLAUDE.md` says into `.agents/supply/RULES.md` or `.agents/CPT_CUTTER.md`, then replace `CLAUDE.md` with the short loader from `project-template/CLAUDE.md`.
-- Older projects keep RULES/MEMORY/NOTEBOOK in `.agents/skills/`. Either move them to `.agents/supply/` (recommended, so they aren't confused with Claude skills) or leave them there; the skills and the hook look in both places. If you leave them, change the three `@.agents/supply/...` lines in `CPT_CUTTER.md` to `@.agents/skills/...`.
+**The project already has a `CLAUDE.md` or `.agents/`?** The installer skips those files. If your `CLAUDE.md` is not a Spirit of Fire loader (for example another SDD setup's), the installer shows the loader lines it needs and asks before adding them to the end (a backup is kept). A v0.3 loader (`@.agents/CPT_CUTTER.md`) is updated to the v0.4 lines automatically, with a backup. Easiest: ask Cutter for the setup mission. Jerome carries every old rule into `RULES.md` and lists anything that didn't fit. Or merge by hand:
+- Move what your old `CLAUDE.md` says into `.agents/supply/RULES.md` or `.claude/CPT_CUTTER.md`, then replace `CLAUDE.md` with the short loader from `project-template/CLAUDE.md`.
+- Older projects keep RULES/MEMORY/NOTEBOOK in `.agents/skills/`. Either move them to `.agents/supply/` (recommended, so they aren't confused with Claude skills) or leave them there; the skills and the hook look in both places. If you leave them, change the three `@.agents/supply/...` lines in `CLAUDE.md` to `@.agents/skills/...`.
 
 ### Step 3: Check it works
 
@@ -185,7 +236,7 @@ Hooks are small scripts Claude Code runs by itself at certain moments. They work
 
 | Hook | When it runs | What it does |
 |---|---|---|
-| **Session brief** | Every session start (and after a context compaction) | Gives Cutter the branch, the notebook's "In progress" and "Next", and the next task number, so he opens with a status report. |
+| **Session brief** | Every session start (and after a context compaction) | Gives Cutter the branch, the Depot map (global depot), the notebook's "In progress" and "Next", and the next task number, so he opens with a status report. |
 | **Branch guard** | Before any terminal command | **Blocks** `git push`, `git merge`, `git rebase` and `gh pr create` when a target branch isn't in `allowedBranches`. Also always blocks `git push --all` / `--mirror`. The AI is told to stop and explain, and never to edit the list itself. |
 | **Notebook reminder** | Each time you send a message | When the conversation's context passes `notebookReminderTokens`, Cutter asks you **once** per session: "Context is getting full. Want me to write the notebook now?" He writes it only if you say yes. |
 
@@ -215,8 +266,8 @@ These are built into `CPT_CUTTER.md` and the skills:
 | Which model a Spartan uses | `model:` in `~/.claude/agents/<name>.md`, or `<project>/.claude/agents/<name>.md` for a project-only install (`opus`, `sonnet`, `haiku`) |
 | A Spartan's default effort | `effort:` in the same file |
 | How a role works | `~/.claude/skills/sdd-<role>/SKILL.md` (or the project's `.claude/skills/` for a project-only install) |
-| When Marines vs Spartans | Section 2 of `.agents/CPT_CUTTER.md` |
-| Effort guide | Section 3 of `.agents/CPT_CUTTER.md` |
+| When Marines vs Spartans | Section 2 of `.claude/CPT_CUTTER.md` |
+| Effort guide | Section 3 of `.claude/CPT_CUTTER.md` |
 | What the session brief shows | `.claude/hooks/session-brief.mjs` |
 | Allowed branches, reminder level, gated or auto hand-offs | `.claude/spirit-of-fire.json` |
 | Turn a hook off | Remove its block from `.claude/settings.json` |
@@ -231,7 +282,7 @@ By default the installer never overwrites, so a plain run only adds **new** file
 .\install.ps1 -Scope Project -Project "D:\path\to\your-project" -Update   # a project-only install
 ```
 
-Use the same choice you installed with. A project-only install is updated once per project.
+Use the same choices you installed with. A project-only install is updated once per project. Files in a global depot are always yours and never replaced.
 
 For every file that differs, the old copy is saved next to it as `<name>.bak-<date-time>` and the new one replaces it. **Your project files are never replaced, even with `-Update`** (they are listed as KEPT): `CLAUDE.md`, `.gitignore`, `.agents\supply\*` (RULES, MEMORY, NOTEBOOK, DECISIONS), `.agents\policies\*` and `.claude\spirit-of-fire.json`.
 
@@ -246,7 +297,7 @@ Because `RULES.md` is yours, an existing project does **not** receive the new ru
 - **Spartans can't talk to you directly.** When Jerome needs a decision, he returns his questions to Cutter, Cutter asks you, and then sends your answers back to the same Jerome. You only ever talk to Cutter.
 - **Spartans start fresh.** They don't see your conversation, only Cutter's mission brief and the supply depot. That's why the depot files matter and why Cutter's briefs include your exact words.
 - **Cost.** Every agent start re-reads the depot, the task and its skill, so small jobs go to the Marines on purpose, memory is capped at 800 words, and tasks carry their own Context block. See "Keeping usage low" below.
-- **The name `CLAUDE.md` must stay.** Claude Code only loads a file with that exact name, so it stays as a tiny loader and the commander's orders live in `.agents/CPT_CUTTER.md`.
+- **The name `CLAUDE.md` must stay.** Claude Code only loads a file with that exact name, so it stays as a tiny loader and the commander's orders live in `.claude/CPT_CUTTER.md`.
 - **Agents folder.** User-level agents must be in `C:\Users\<you>\.claude\agents\`, not inside the skills folder.
 - **The branch guard reads commands, not intentions.** It covers `git push`, `merge`, `rebase` and `gh pr create`, including chained commands (`git add . && git push ...`). It doesn't stop you typing commands yourself in a terminal; it only guards what Claude runs. For full protection, also turn on branch protection in GitHub.
 - **Tested vs. draft.** The hooks and the installer (including `-Update`) were tested. The agents and skills are drafts that encode a workflow proven by hand on a real project (see `CHANGELOG.md`); try them on one real feature or audit first, then adjust the skills from what you see.
