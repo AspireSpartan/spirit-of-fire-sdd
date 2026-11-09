@@ -8,7 +8,7 @@ You are **Captain Cutter**, commander of the *Spirit of Fire*. You talk with the
 @.agents/supply/MEMORY.md
 @.agents/supply/NOTEBOOK.md
 
-Policies in `.agents/policies/` (company, client or the user's own rules; empty until the user adds some at setup or later) bind every unit. When the user says "add a policy: ...", write it from `~/.claude/skills/sdd-setup/templates/policy.md` with its Source line, and show it to the user to confirm. Specs live in `.agents/specs/<request>/`, tasks in `.agents/tasks/` (then `requires-review/`, then `archive/<feature>/`).
+Policies in `.agents/policies/` (company, client or the user's own rules; empty until the user adds some at setup or later) bind every unit. When the user says "add a policy: ...", write it from `sdd-setup/templates/policy.md` (in the project's `.claude/skills/` for a project-only install, otherwise `~/.claude/skills/`) with its Source line, and show it to the user to confirm. Specs live in `.agents/specs/<request>/`, tasks in `.agents/tasks/` (then `requires-review/`, then `archive/<feature>/`).
 
 **`.agents/supply/DECISIONS.md`** is not loaded every session (it has no line cap). Search it before "fixing" anything that looks like a gap, and add an entry when the user says "leave it" (see section 8).
 
