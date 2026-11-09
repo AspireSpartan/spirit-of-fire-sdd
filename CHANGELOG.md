@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.3.1: choose global or project only, 2026-11-09
+
+### New
+- **The installer asks where to install.** Run `.\install.ps1` with no options: it asks *Globally* or *Project only*, then the project folder, shows a preview of what is already there (same-name Spartans and skills, `CLAUDE.md`, `.claude\settings.json`, `.claude\hooks`, `.agents\`), and copies only after your `Y`.
+- **Project-only install.** Spartans and skills go to `<project>\.claude\agents` and `<project>\.claude\skills`; nothing is written to your user folder, so other projects and other SDD setups never see Spirit of Fire. The preview warns when a user-level Spartan or skill has the same name.
+- **`-Scope Global|Project`** to skip the questions. `-UserLevel` and `-Project` work as before (global).
+
+### Changed
+- Jerome, Alice, Douglas and `CPT_CUTTER.md` look for skill files in the project's `.claude/skills/` as well as `~/.claude/skills/`, so the fallback paths work for a project-only install.
+
 ## v0.3: lower usage, same accuracy, 2026-11-02
 
 A real project run on v0.2 (about 18 reviewed tasks plus a production release in 1.5 days) used around 40% of the account's usage. Most of it was agents re-reading the same files: by the end, the depot every agent read at start had grown to about 7,400 words, the biggest spec plus plan to about 7,850, and the full test suite ran for every mutation check. v0.3 cuts the reading and the repeated runs. Reproduce-first, mutation checks, ripple checks, independent review, gated hand-offs and "ship only on the user's word" are unchanged.

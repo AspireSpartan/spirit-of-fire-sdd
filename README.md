@@ -28,7 +28,7 @@ A reusable **spec-driven development (SDD)** setup for Claude Code, for any full
 ```
 Spirit-of-Fire-SDD/
 ├── README.md                  ← you are here
-├── install.ps1                ← copies everything into place (never overwrites; -Update replaces framework files after a backup)
+├── install.ps1                ← asks: global or project only, then copies everything into place (never overwrites; -Update replaces framework files after a backup)
 ├── user-level/                ← install ONCE for your Windows user; shared by all projects
 │   ├── agents/                    jerome.md, alice.md, douglas.md (reviews and audits), anders.md (research, skill vetting)
 │   └── skills/                    sdd-setup, sdd-audit, sdd-plan, sdd-code, sdd-review (+ demo tour), sdd-marine, sitrep, find-skills (Anders only)
@@ -67,25 +67,35 @@ cd spirit-of-fire-sdd
 
 To get updates later: `git pull`, then run the installer again (it only adds new files; see "Updating" below).
 
-### Step 1: Install the Spartans and skills (once per computer)
+### Step 1: Run the installer and choose global or project only
 
 Open PowerShell in this folder and run:
 
 ```powershell
-.\install.ps1 -UserLevel
+.\install.ps1
 ```
 
-This copies:
-- `user-level\agents\*.md` → `C:\Users\<you>\.claude\agents\`
-- `user-level\skills\*` → `C:\Users\<you>\.claude\skills\`
+It asks two questions, then shows a preview before it copies anything:
 
-Files that already exist are **skipped**, never overwritten.
+1. **Where to install:**
+   - **[1] Globally:** the Spartans and skills go to `C:\Users\<you>\.claude\` and every project on this computer sees them. The commander, supply depot and hooks go into the project you name. Pick this when Spirit of Fire is your only SDD setup.
+   - **[2] Project only:** everything goes inside the project, including the Spartans and skills (to `<project>\.claude\agents\` and `<project>\.claude\skills\`). Nothing is written to your user folder. Pick this to try Spirit of Fire, or when you run **another SDD setup** in other projects, so the two never mix.
+2. **Which project folder** (Enter uses the current folder). For a global install you can type `-` to install only the agents and skills.
+3. **The preview** lists what is already there with the same name: Spartans, skills, `CLAUDE.md`, `.claude\settings.json`, `.claude\hooks` and `.agents\`. Those are skipped, never overwritten. For a project-only install it also warns when your user folder has a Spartan or skill of the same name, because Claude Code may use that copy instead. Type `Y` to go on or `N` to stop with nothing copied.
 
-### Step 2: Add the setup to a project
+**Trying it next to another SDD setup?** Use project only, on a separate git branch or worktree of the project, and check the preview. If it lists `CLAUDE.md` or `.claude\settings.json`, Spirit of Fire or its hooks won't load until you merge them (see "already has a CLAUDE.md" below).
+
+**Without questions** (scripts, or when you already know):
 
 ```powershell
-.\install.ps1 -Project "D:\path\to\your-project"
+.\install.ps1 -Scope Global  -Project "D:\path\to\your-project"   # global agents + skills, and this project
+.\install.ps1 -Scope Global                                         # global agents + skills only
+.\install.ps1 -Scope Project -Project "D:\path\to\your-project"   # everything inside this project
 ```
+
+The older `-UserLevel` and `-Project "<path>"` options still work and mean a global install, as before.
+
+### Step 2: Finish the setup in the project
 
 Then, in that project:
 1. **Check Node.js is installed** (`node -v`). The hooks need it.
@@ -202,9 +212,9 @@ These are built into `CPT_CUTTER.md` and the skills:
 
 | To change | Edit |
 |---|---|
-| Which model a Spartan uses | `model:` in `~/.claude/agents/<name>.md` (`opus`, `sonnet`, `haiku`) |
+| Which model a Spartan uses | `model:` in `~/.claude/agents/<name>.md`, or `<project>/.claude/agents/<name>.md` for a project-only install (`opus`, `sonnet`, `haiku`) |
 | A Spartan's default effort | `effort:` in the same file |
-| How a role works | `~/.claude/skills/sdd-<role>/SKILL.md` |
+| How a role works | `~/.claude/skills/sdd-<role>/SKILL.md` (or the project's `.claude/skills/` for a project-only install) |
 | When Marines vs Spartans | Section 2 of `.agents/CPT_CUTTER.md` |
 | Effort guide | Section 3 of `.agents/CPT_CUTTER.md` |
 | What the session brief shows | `.claude/hooks/session-brief.mjs` |
@@ -216,9 +226,12 @@ These are built into `CPT_CUTTER.md` and the skills:
 By default the installer never overwrites, so a plain run only adds **new** files. After a `git pull` of this folder, take the improved agents, skills, commander orders and hooks with **`-Update`**:
 
 ```powershell
-.\install.ps1 -UserLevel -Update                              # agents + skills, once per computer
-.\install.ps1 -Project "D:\path\to\your-project" -Update    # commander orders + hooks of one project
+.\install.ps1 -Update                                                    # asks global or project only, like a first install
+.\install.ps1 -Scope Global  -Project "D:\path\to\your-project" -Update   # global agents + skills, and this project
+.\install.ps1 -Scope Project -Project "D:\path\to\your-project" -Update   # a project-only install
 ```
+
+Use the same choice you installed with. A project-only install is updated once per project.
 
 For every file that differs, the old copy is saved next to it as `<name>.bak-<date-time>` and the new one replaces it. **Your project files are never replaced, even with `-Update`** (they are listed as KEPT): `CLAUDE.md`, `.gitignore`, `.agents\supply\*` (RULES, MEMORY, NOTEBOOK, DECISIONS), `.agents\policies\*` and `.claude\spirit-of-fire.json`.
 
