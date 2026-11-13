@@ -8,14 +8,17 @@ A reusable **spec-driven development (SDD)** setup for Claude Code, for any full
 |---|---|---|---|
 | **Captain Cutter** | The main Claude conversation | Talks with you, picks who takes each job, sets the effort, asks you questions, reports back | your session model (Sonnet recommended) |
 | **Jerome** (Red Team leader) | `jerome` agent | **Planner**: writes the spec, the plan and the task files. Never writes code. | Opus |
-| **Alice** | `alice` agent | **Coder**: builds one task at a time and proves it works | Sonnet |
+| **Alice** | `alice` agent | **Coder** for the hard tasks: builds high-effort tasks, tasks the ODST hand back, and review fixes, and proves each one works | Sonnet |
+| **ODST** (Orbital Drop Shock Troopers) | `odst` agent | **Light Coder**: builds the tasks Jerome marked **low** or **medium** effort, with the same proof rules as Alice. Hands anything harder back to Alice. | Haiku |
 | **Douglas** | `douglas` agent | **Reviewer and Auditor**: reviews finished work in a browser (Playwright), and **audits** an existing module before fixes are planned. Approves or sends it back. | Sonnet |
 | **Professor Anders** | `anders` agent | **Researcher and Skill vetter**: finds facts outside the repo, and finds and vets new skills before anything is installed. Read-only, no shell. | Sonnet |
 | **Marines** | Cutter himself, using the `sdd-marine` skill | Small fixes: plan, code and check in one pass | your session model |
 | **Supply depot** | `.agents/` in each project, or a global folder per project and branch | Rules, memory, notebook, **decisions**, policies, specs, tasks: what every unit reads first | |
 | **Armory** | `~/.claude/skills/` | Skills any unit can pick up (debug, architecture, testing-strategy, ...) | |
 
-**In one sentence:** you give the order, Cutter decides whether the Marines handle it or the Spartans (Jerome, then Alice, then Douglas) take it, and every job leaves a written record in the supply depot.
+**In one sentence:** you give the order, Cutter decides whether the Marines handle it or the Spartans take it (Jerome plans, the ODST or Alice builds each task by its effort, Douglas reviews), and every job leaves a written record in the supply depot.
+
+**New in v0.4.1** (see `CHANGELOG.md`): the **ODST**, a second Coder on Haiku. Jerome's low and medium tasks now go to the ODST, and Alice (Sonnet) keeps the high ones, the tasks the ODST hand back, and the review fixes. Most tasks are low or medium, so most building now runs on the cheaper model, with the same tests and the same review by Douglas. The installer also gets a **Skip** choice on every question, and a parts list, for when you already have your own setup for something.
 
 **New in v0.4** (see `CHANGELOG.md`): the installer asks **where to install** (globally or this project only) and **where the supply depot lives**: in the project and committed, in the project but ignored by git, or in a **global folder per project and branch**, outside the repository, so specs and memory are never committed and every branch's work can be read without switching branches.
 
@@ -30,9 +33,9 @@ A reusable **spec-driven development (SDD)** setup for Claude Code, for any full
 ```
 Spirit-of-Fire-SDD/
 ├── README.md                  ← you are here
-├── install.ps1                ← asks: global or project only, and where the depot lives; then copies (never overwrites; -Update replaces framework files after a backup)
+├── install.ps1                ← asks: global or project only, where the depot lives, and which parts to skip; then copies (never overwrites; -Update replaces framework files after a backup)
 ├── user-level/                ← install ONCE for your Windows user; shared by all projects
-│   ├── agents/                    jerome.md, alice.md, douglas.md (reviews and audits), anders.md (research, skill vetting)
+│   ├── agents/                    jerome.md, alice.md, odst.md (low/medium tasks), douglas.md (reviews and audits), anders.md (research, skill vetting)
 │   └── skills/                    sdd-setup, sdd-audit, sdd-plan, sdd-code, sdd-review (+ demo tour), sdd-marine, sitrep, find-skills (Anders only)
 └── project-template/          ← copy into EACH project
     ├── CLAUDE.md                  short loader: Cutter's orders + RULES and MEMORY from the depot
@@ -78,17 +81,31 @@ Open PowerShell in this folder and run:
 .\install.ps1
 ```
 
-It asks three questions, then shows a preview before it copies anything:
+It asks four questions, then shows a preview before it copies anything. **Every question has a Skip choice**, for when you already have your own setup for that part:
 
 1. **Where to install:**
    - **[1] Globally:** the Spartans and skills go to `C:\Users\<you>\.claude\` and every project on this computer sees them. The commander, supply depot and hooks go into the project you name. Pick this when Spirit of Fire is your only SDD setup.
    - **[2] Project only:** everything goes inside the project, including the Spartans and skills (to `<project>\.claude\agents\` and `<project>\.claude\skills\`). Nothing is written to your user folder. Pick this to try Spirit of Fire, or when you run **another SDD setup** in other projects, so the two never mix.
-2. **Which project folder** (Enter uses the current folder). For a global install you can type `-` to install only the agents and skills.
+   - **[S] Skip:** you have your own agents and skills; only the project files are set up.
+2. **Which project folder** (Enter uses the current folder). For a global install you can type `S` (or `-`) to skip the project and install only the agents and skills.
 3. **Where the supply depot lives** (rules, memory, notebook, specs, tasks). See "Where the supply depot lives" below:
    - **[1] In the project, committed** (`.agents\`, the v0.3 layout).
    - **[2] In the project, ignored by git**: `.agents/` is added to `.gitignore`.
    - **[3] Global folder, by project and branch**: `C:\Users\<you>\.claude\spirit-of-fire\<owner-repo>\`, outside the repository. It also asks the folder name (Enter keeps `owner-repo` from the git remote).
-4. **The preview** lists what is already there with the same name: Spartans, skills, `CLAUDE.md`, `.claude\settings.json`, `.claude\hooks` and `.agents\`. Those are skipped, never overwritten. For a project-only install it also warns when your user folder has a Spartan or skill of the same name, because Claude Code may use that copy instead. Type `Y` to go on or `N` to stop with nothing copied.
+   - **[S] Skip:** you keep your own depot (or none). No depot files are created, and `.gitignore` and `spirit-of-fire.json` are left alone.
+4. **Which parts to install.** Press Enter for all of them, or type the numbers of the parts to skip (for example `2,4`). Parts you already skipped above show as `(skipped)`:
+   ```
+   Which parts should be installed? Skip a part when you already have your own setup for it.
+     [1] Spartans and ODST       agent files (jerome, alice, odst, douglas, anders)
+     [2] Armory skills           sdd-plan, sdd-code, sdd-review, sitrep, ...
+     [3] Commander               .claude\CPT_CUTTER.md + the CLAUDE.md loader lines
+     [4] Hooks                   .claude\settings.json + .claude\hooks\ (session brief, branch guard, notebook reminder)
+     [5] Supply depot            rules, memory, notebook, specs, tasks template
+     [6] .gitignore              the template file and the lines added to it
+   Enter = install all of these, or type the numbers to SKIP (for example 2,4):
+   ```
+   Skipping the Commander prints the `CLAUDE.md` lines Spirit of Fire needs, so you can add them by hand. Skipping the Hooks also turns off the branch guard and the session brief, so only skip them if your own hooks would clash.
+5. **The preview** lists the skipped parts and what is already there with the same name: Spartans, skills, `CLAUDE.md`, `.claude\settings.json`, `.claude\hooks` and `.agents\`. Those are skipped, never overwritten. For a project-only install it also warns when your user folder has a Spartan or skill of the same name, because Claude Code may use that copy instead. Type `Y` to go on or `N` to stop with nothing copied.
 
 **Trying it next to another SDD setup?** Use project only, on a separate git branch or worktree of the project, and check the preview. If it lists `CLAUDE.md` or `.claude\settings.json`, Spirit of Fire or its hooks won't load until you merge them (see "already has a CLAUDE.md" below).
 
@@ -100,9 +117,10 @@ It asks three questions, then shows a preview before it copies anything:
 .\install.ps1 -Scope Project -Project "D:\path\to\your-project"   # everything inside this project
 .\install.ps1 -Scope Project -Project "D:\path\to\your-project" -Depot Global           # ... with a global depot
 .\install.ps1 -Scope Global  -Project "D:\path\to\your-project" -Depot ProjectIgnored   # depot in the project, not committed
+.\install.ps1 -Scope Global  -Project "D:\path\to\your-project" -Skip Hooks,GitIgnore   # keep your own hooks and .gitignore
 ```
 
-`-Depot` is `Project` (default), `ProjectIgnored` or `Global`; `-DepotName <name>` sets the global folder's name.
+`-Depot` is `Project` (default), `ProjectIgnored` or `Global`; `-DepotName <name>` sets the global folder's name. `-Skip` takes any of `Agents`, `Skills`, `Commander`, `Hooks`, `Depot`, `GitIgnore`, separated by commas.
 
 The older `-UserLevel` and `-Project "<path>"` options still work and mean a global install, as before.
 
@@ -193,10 +211,11 @@ You talk to Cutter as usual. He decides who takes the job and tells you in one l
 |---|---|
 | "Set up this project" / "first mission" | **Jerome** inspects the code and fills in `RULES.md`, `MEMORY.md` and the `CLAUDE.md` header for you to review (`sdd-setup`). Also works for moving an older project's `CLAUDE.md` / `.agents` into this layout. |
 | "The save button on the profile page is misaligned" | **Marines**: Cutter writes a one-page quick task, fixes it, checks it, archives it. |
-| "Test and review user creation" / "try to break the login" / "audit this module" | **Audit mission:** **Douglas** probes the module on an isolated test environment (duplicates, reload, double submit, edit conflicts, imports, lock-outs, leaked messages), writes findings with evidence and severity into `.agents/specs/<module>-review/`. Then **Jerome** plans the fixes, **Alice** builds them, **Douglas** reviews them independently. |
+| "Test and review user creation" / "try to break the login" / "audit this module" | **Audit mission:** **Douglas** probes the module on an isolated test environment (duplicates, reload, double submit, edit conflicts, imports, lock-outs, leaked messages), writes findings with evidence and severity into `.agents/specs/<module>-review/`. Then **Jerome** plans the fixes, the **ODST** or **Alice** builds them (by effort), **Douglas** reviews them independently. |
 | "Add CSV export to the reports page" | **Jerome** writes the spec. If he has questions, Cutter asks you with multiple-choice options. Then Jerome writes the tasks. |
 | "Go" / "continue" after a stop (gated mode) | Cutter sends the next unit. |
-| "Continue" / "do the next task" | **Alice** builds the next task, then **Douglas** reviews it. |
+| "Continue" / "do the next task" | The **ODST** builds the next task if Jerome marked it low or medium, **Alice** if it is high; then **Douglas** reviews it. |
+| "Send Alice on TASK-12" | You override who builds. (The ODST never takes a high task; lower its effort in the task file first if you want that.) |
 | "Review TASK-12, and I want to watch the browser" | **Douglas** runs Playwright in a **visible** browser window. |
 | "Just fix it" / "send the Spartans" | You override Cutter's choice. |
 | "Write the notebook" | Cutter writes the session handoff (only when you ask). |
@@ -209,18 +228,27 @@ You talk to Cutter as usual. He decides who takes the job and tells you in one l
 - **Marines** (all of these): about 3 files or fewer, no database or API-contract change, no protected area, and it's clear what you want.
 - **Spartans**: anything else, or anything you call complex.
 
+### Who builds a task: the ODST or Alice
+Jerome writes a **Suggested effort** at the top of every task, and that decides the builder:
+- **low** or **medium** → the **ODST** (Haiku, cheaper). Same rules as Alice: failing test first for a bug, a mutation check for every fix, the full gate once, and Douglas reviews it.
+- **high** (protected areas, migrations, security, money, dates and time zones) → **Alice** (Sonnet).
+- If the ODST find the task is harder than it looked, they stop and say **"Needs Alice"**, and Cutter sends Alice on the same task.
+- If Douglas sends findings back, **Alice** fixes them, even on an ODST task.
+
+The Marines and the ODST are not the same: the Marines are Cutter himself doing a small fix with no plan; the ODST build one of Jerome's planned tasks in their own, cheaper agent.
+
 ### Effort (how hard each Spartan thinks)
 Cutter picks **low**, **medium** or **high** for every mission:
 - **low**: mechanical work (renames, docs, copying a pattern)
 - **medium**: normal features, fixes and planning (default for every agent, Jerome included)
 - **high**: protected areas, data migrations, security, money, dates and time zones, or anything that failed review once
 
-Jerome suggests an effort in each task file, and Cutter normally follows it.
+Jerome suggests an effort in each task file, and Cutter normally follows it. The effort also picks the builder: low and medium go to the ODST, high to Alice.
 
 ### Gated or auto (hand-off mode)
 `handoff` in `.claude/spirit-of-fire.json`:
 - **`gated`** (default): every stage ends with a **stop and a one-line hand-off**, and Cutter waits for your go: *"Audit done: findings are in ..."*, *"Done planning."*, *"The work is ready for review."*, then the verdict. Use the pause to change the model, answer questions or read the files. You can also say "stop after each step" for one mission.
-- **`auto`**: Cutter runs Jerome → Alice → Douglas without stopping (findings go back to Alice), and stops only for your questions and for anything that ships.
+- **`auto`**: Cutter runs Jerome → ODST or Alice → Douglas without stopping (findings go back to Alice), and stops only for your questions and for anything that ships.
 
 ### Commit, push and porting wait for your word
 Cutter (and every Spartan) never commits, pushes, merges or ports a change to another branch until you say so. "Maybe we should" counts as a question, not a yes. The branch guard hook blocks wrong *targets*; this rule covers the *decision*.
@@ -265,6 +293,8 @@ These are built into `CPT_CUTTER.md` and the skills:
 |---|---|
 | Which model a Spartan uses | `model:` in `~/.claude/agents/<name>.md`, or `<project>/.claude/agents/<name>.md` for a project-only install (`opus`, `sonnet`, `haiku`) |
 | A Spartan's default effort | `effort:` in the same file |
+| The ODST's model | `model:` in `odst.md` (`haiku` by default). If ODST work keeps coming back from review, set `sonnet`: you keep the split, but lose most of the saving |
+| Which efforts go to the ODST | Section 2a of `.claude/CPT_CUTTER.md` |
 | How a role works | `~/.claude/skills/sdd-<role>/SKILL.md` (or the project's `.claude/skills/` for a project-only install) |
 | When Marines vs Spartans | Section 2 of `.claude/CPT_CUTTER.md` |
 | Effort guide | Section 3 of `.claude/CPT_CUTTER.md` |
@@ -288,7 +318,7 @@ For every file that differs, the old copy is saved next to it as `<name>.bak-<da
 
 Because `RULES.md` is yours, an existing project does **not** receive the new rule sections by itself. Ask Cutter: *"Compare RULES.md with the template and add the missing sections"*, or copy the sections *Testing standard*, *Ripple check*, *Independent review*, *Accepted decisions* and the two new lines under *Branches* by hand. Add `"handoff": "gated"` to your `spirit-of-fire.json` to choose the hand-off mode (gated is the default if the line is missing). `DECISIONS.md` is added automatically if it does not exist yet.
 
-`opus` and `sonnet` always mean the newest version (today Opus 5.5 and Sonnet 5.5).
+`opus`, `sonnet` and `haiku` always mean the newest version (today Opus 5.5, Sonnet 5.5 and Haiku 5.5). A plain `-Update` also adds the new `odst.md`. `-Update` respects `-Skip` too, so a part you skipped stays yours.
 
 ---
 
@@ -300,7 +330,7 @@ Because `RULES.md` is yours, an existing project does **not** receive the new ru
 - **The name `CLAUDE.md` must stay.** Claude Code only loads a file with that exact name, so it stays as a tiny loader and the commander's orders live in `.claude/CPT_CUTTER.md`.
 - **Agents folder.** User-level agents must be in `C:\Users\<you>\.claude\agents\`, not inside the skills folder.
 - **The branch guard reads commands, not intentions.** It covers `git push`, `merge`, `rebase` and `gh pr create`, including chained commands (`git add . && git push ...`). It doesn't stop you typing commands yourself in a terminal; it only guards what Claude runs. For full protection, also turn on branch protection in GitHub.
-- **Tested vs. draft.** The hooks and the installer (including `-Update`) were tested. The agents and skills are drafts that encode a workflow proven by hand on a real project (see `CHANGELOG.md`); try them on one real feature or audit first, then adjust the skills from what you see.
+- **Tested vs. draft.** The hooks and the installer (including `-Update`) were tested. The agents and skills are drafts that encode a workflow proven by hand on a real project (see `CHANGELOG.md`); the ODST is new in v0.4.1 and not yet tried on a real project; try them on one real feature or audit first, then adjust the skills from what you see.
 - **Gated mode needs you to answer.** In gated mode nothing moves to the next stage until you say go; that is the point, but it means a long chain takes several messages from you. Switch to `auto` if you prefer fewer stops.
 
 ---
@@ -312,9 +342,10 @@ Most usage comes from re-reading: every message re-sends the whole conversation,
 1. **Start a fresh session** after "Done planning.", after a feature is approved, and after a long break. Say "write the notebook" first; the session brief picks it up.
 2. **Run the main session on Sonnet.** Switch to Opus only while you discuss design with Cutter.
 3. **Keep `MEMORY.md` under 800 words.** It is read at the start of every mission. Results and evidence belong in the task files.
-4. **Let Jerome write the Context block** in every task, so Alice does not read the whole spec.
-5. **Use high effort only for risky work** (protected areas, money, migrations, security, dates).
-6. **Add skills only through Anders**, and prefer small skills: a skill's description sits in every session, and its body is read every time an agent loads it.
+4. **Let Jerome write the Context block** in every task, so the Coder does not read the whole spec.
+5. **Let the ODST take the low and medium tasks.** They run on Haiku, which costs a fraction of Sonnet, and that is most of the building. Keep Alice for high effort.
+6. **Use high effort only for risky work** (protected areas, money, migrations, security, dates).
+7. **Add skills only through Anders**, and prefer small skills: a skill's description sits in every session, and its body is read every time an agent loads it.
 
 To see the effect, run `/context` at the start of a session and check `/usage` before and after a mission.
 

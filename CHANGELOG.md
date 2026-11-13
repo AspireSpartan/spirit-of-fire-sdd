@@ -1,5 +1,29 @@
 # Changelog
 
+## v0.4.1: the ODST, a cheaper Coder for low and medium tasks, 2026-11-13
+
+Most planned tasks are low or medium effort, and until now every one of them was built by Alice on Sonnet. v0.4.1 adds a second Coder on a cheaper model for those, and keeps Alice for the risky work. The proof rules and Douglas's review are unchanged.
+
+### New
+- **ODST** (`odst` agent, Haiku, effort low by default): builds one TASK-N file whose **Suggested effort** is **low** or **medium**, with the `sdd-code` procedure (failing test first, mutation checks, the full gate once). It refuses high-effort tasks and review fixes ("Not an ODST task ... Send Alice."), and pulls out with **"Needs Alice"** when a task turns out to touch a risk area, is wrong or bigger than written, or keeps failing. Reports in about 10 lines and marks `Built by: ODST` in the task's Result.
+- **Skip in the installer**, for when you already have your own setup for part of it. Every question has an `[S] Skip` choice (agents and skills; the project folder; the depot), and a new fourth question lists the parts (Spartans and ODST, armory skills, commander, hooks, supply depot, `.gitignore`): Enter installs all, or type the numbers to skip (for example `2,4`). `-Skip Agents,Skills,Commander,Hooks,Depot,GitIgnore` does the same without questions. A skipped commander prints the `CLAUDE.md` loader lines to add by hand; a skipped `.gitignore` prints the lines it would have added.
+- **CPT_CUTTER section 2a, "Who builds a task":** low or medium → ODST; high or no effort line → Alice; an ODST hand-back → Alice on the same task; CHANGES REQUESTED → Alice, also on ODST tasks. The user can override, but the ODST never takes a high task.
+
+### Changed
+- **Alice** now takes high-effort tasks, tasks the ODST handed back, and every round of review fixes.
+- **Jerome** knows the effort picks the builder: risk areas are always high, and low and medium tasks must be buildable from their own Context block.
+- **Douglas** reviews ODST work the same way; findings still go back to Alice.
+- `sdd-code` (Result starts with `Built by:`), `sdd-plan` and its task and plan templates, `sdd-review`, `sitrep`, the `RULES.md` template, the installer's messages and `README.md` mention the ODST.
+
+### Changed files
+New agent `odst`; agents `alice`, `jerome`, `douglas`; skills `sdd-code`, `sdd-plan` (+ task and plan templates), `sdd-review`, `sitrep`; `.claude/CPT_CUTTER.md`, the `RULES.md` template, `install.ps1` (Skip choices and `-Skip`), `README.md`.
+
+### Upgrading from v0.4
+1. Run the installer with `-Update` and the same choices you installed with (for example `.\install.ps1 -Scope Global -Project "<path>" -Update`). It adds `odst.md` and replaces the changed agents, skills and `CPT_CUTTER.md` (old copies kept as `.bak-<date-time>`).
+2. Your `RULES.md` is never replaced: change "Jerome, Alice and Douglas" in its first lines to "Jerome, Alice, the ODST and Douglas" if you like; nothing depends on it.
+3. Tasks already written keep working: their Suggested effort now picks the builder. Tasks without an effort line go to Alice.
+4. Restart Claude Code so it sees the new agent.
+
 ## v0.4: choose where the supply depot lives, 2026-11-09
 
 Specs, tasks and memory no longer have to be committed with the code.

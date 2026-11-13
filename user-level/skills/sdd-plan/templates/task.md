@@ -3,11 +3,11 @@
 **Spec/Blueprint:** `.agents/specs/<request>/spec.md`, `plan.md`
 **Findings closed:** <audit finding IDs, e.g. U1, U4, or "none">
 **Depends on:** TASK-<N-1>, or "nothing"
-**Suggested effort:** low / medium / high
+**Suggested effort:** low / medium / high   (low or medium: the ODST builds it; high: Alice)
 **Files touched:** <exact paths, new and existing>
 
 ## Context (from the spec)
-The 10 to 20 lines of the spec and plan this task needs, copied or tightly summarized: the decisions (P-numbers, answers), the contracts, the ripple rows and the check recipe steps that apply. Alice reads this instead of the whole spec. Name the spec sections it came from, so a reviewer can check them.
+The 10 to 20 lines of the spec and plan this task needs, copied or tightly summarized: the decisions (P-numbers, answers), the contracts, the ripple rows and the check recipe steps that apply. The Coder (ODST or Alice) reads this instead of the whole spec, so for a low or medium task it must be enough on its own. Name the spec sections it came from, so a reviewer can check them.
 
 ## What
 1 to 3 sentences. Concrete implementation details.

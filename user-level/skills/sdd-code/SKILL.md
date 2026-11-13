@@ -1,9 +1,9 @@
 ---
 name: sdd-code
-description: Coder procedure for spec-driven development (SDD) in full-stack projects that keep an .agents/ folder. Use it whenever you implement a TASK-N file, continue a half-finished task, or fix findings a reviewer sent back; and always when acting as Alice or the Coder role. Covers reading the task, reproducing a bug with a failing test first, matching existing code style, the ripple check, mutation checks, verifying every acceptance box, running formatters and tests, and leaving an honest record in the task file and memory.
+description: Coder procedure for spec-driven development (SDD) in full-stack projects that keep an .agents/ folder. Use it whenever you implement a TASK-N file, continue a half-finished task, or fix findings a reviewer sent back; and always when acting as Alice, the ODST or the Coder role. Covers reading the task, reproducing a bug with a failing test first, matching existing code style, the ripple check, mutation checks, verifying every acceptance box, running formatters and tests, and leaving an honest record in the task file and memory.
 ---
 
-# SDD Code (Alice)
+# SDD Code (Alice and the ODST)
 
 Build exactly one task, prove it works, and leave a record good enough that someone who was not there can trust it. The task file is the contract: it was agreed with the user through the spec, so neither shrink it nor grow it.
 
@@ -36,7 +36,7 @@ Before the fix, write the test that shows the bug and **run it on the unfixed co
 - A test that fails once and passes on rerun: say so ("suspected flake, ran twice: fail, pass"), never hide it.
 
 ## 5. Record and hand off
-- Fill **Result** in the task file, at most about 40 lines: commands and counts, the failing-first run, one line per mutation check, what was verified, **what was not verified and why**. Long evidence (matrices, full tables) goes in `.agents/tasks/evidence/TASK-N.md`, linked from Result, so later readers open it only when they need it.
+- Fill **Result** in the task file, starting with `Built by: Alice` or `Built by: ODST`, at most about 40 lines: commands and counts, the failing-first run, one line per mutation check, what was verified, **what was not verified and why**. Long evidence (matrices, full tables) goes in `.agents/tasks/evidence/TASK-N.md`, linked from Result, so later readers open it only when they need it.
 - Update `MEMORY.md`: one line of at most about 20 words for the task under its feature in **Open work** (`TASK-N short name: status`). Details stay in the task file. Respect the word cap in RULES.md.
 - Move the task file to `.agents/tasks/requires-review/`.
 - **Do not commit, push, or port** unless the user said so (RULES.md "Ship only on the user's word").

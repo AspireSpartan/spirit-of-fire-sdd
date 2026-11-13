@@ -3,7 +3,7 @@
 Spec: `spec.md`. Branch: `<branch>`.
 
 ## Order of work
-| Task | What | Why this order | Suggested effort |
+| Task | What | Why this order | Suggested effort (low/medium: ODST, high: Alice) |
 |---|---|---|---|
 | TASK-N | ... | ... | low / medium / high |
 

@@ -38,7 +38,7 @@ At any time the user can type `/sitrep` (the `sitrep` skill) for a fuller status
 Every message re-sends the whole conversation, and every agent report you receive is added to it. A long session makes even a one-word "go" expensive, and after a long pause the cache is cold and the whole history is processed again at full price.
 - Suggest a fresh session at natural breaks: after "Done planning.", after a feature is approved, or before the user steps away in gated mode. Offer to write the notebook first; the session-start hook picks it up.
 - One feature per session is a good default; one task per session for big tasks.
-- Recommend running this main session on **Sonnet**; Opus is worth it here only while the user and you discuss design. Jerome runs on Opus by himself.
+- Recommend running this main session on **Sonnet**; Opus is worth it here only while the user and you discuss design. Jerome runs on Opus and the ODST on Haiku by themselves.
 
 ## 2. Pick the unit
 
@@ -46,18 +46,31 @@ Every message re-sends the whole conversation, and every agent report you receiv
 |---|---|---|---|
 | **Marines** | You, with the `sdd-marine` skill | session model | About 3 files or fewer, no schema/API-contract change, no protected area, intent clear |
 | **Jerome** | `jerome` agent (Planner) | Opus | Anything bigger, unclear, risky, or touching protected areas; any new feature; turning audit findings into a plan |
-| **Alice** | `alice` agent (Coder) | Sonnet | One TASK-N file at a time, after Jerome's tasks exist |
-| **Douglas** | `douglas` agent (Reviewer and Auditor) | Sonnet | After Alice finishes a task (review); also **audits** an existing module (`sdd-audit`) |
+| **ODST** | `odst` agent (light Coder) | Haiku | One TASK-N file whose **Suggested effort is low or medium** (see 2a) |
+| **Alice** | `alice` agent (Coder) | Sonnet | One TASK-N file whose **Suggested effort is high**, a task the ODST handed back, and every round of review fixes |
+| **Douglas** | `douglas` agent (Reviewer and Auditor) | Sonnet | After the ODST or Alice finishes a task (review); also **audits** an existing module (`sdd-audit`) |
 | **Professor Anders** | `anders` agent (Researcher and Skill vetter) | Sonnet | Facts from outside the repo before a decision or plan (a library, a service, security guidance), and **vetting** any new skill before it is installed. Read-only, no shell; report goes in `.agents/research/` |
 
 Say which unit you are sending in one line ("Sending Marines: one CSS fix" / "Sending Jerome: this changes the schema"). The user can override ("send the Spartans", "just fix it").
+
+## 2a. Who builds a task: the ODST or Alice
+
+Read the task's **Suggested effort** before you send a Coder:
+- **low** or **medium** → send `odst` with that effort. **high**, or no effort line → send `alice`.
+- Raise a task to high (and send Alice) for the reasons in section 3, and say the reason in one line. Never lower a high task to fit the ODST.
+- The ODST returns **"Not an ODST task"** or **"Needs Alice"** → send `alice` on the same task (medium, or high if section 3 says so) and put the ODST's reason in the brief. Do not send the ODST again on that task.
+- **CHANGES REQUESTED** from Douglas → the fixes go to Alice, also when the task says `Built by: ODST`.
+- The user can override ("send Alice on TASK-12"). The ODST never takes a high task; if the user wants one on the ODST, they lower the effort in the task file first.
+- Say it in one line: "Sending the ODST: TASK-12, effort low" / "Sending Alice: TASK-13 is high (migration)".
+
+ODST and Marines are different: the **Marines** are you, on the session model, doing a small fix with no planning; the **ODST** build one of Jerome's planned tasks in a separate, cheaper agent.
 
 ## 2b. The missions
 
 | Mission | Chain | When the user says things like |
 |---|---|---|
-| **Build** (new feature, big change) | Jerome (spec, questions, tasks) → Alice → Douglas, per task | "Add CSV export to the reports page" |
-| **Audit** (test a module, find the holes, then fix) | **Douglas audits** (`sdd-audit`: probes, findings with evidence) → Jerome plans the fixes → Alice builds → Douglas **independent review** | "Test and review user creation", "try to break the login", "check this module" |
+| **Build** (new feature, big change) | Jerome (spec, questions, tasks) → ODST or Alice (by task effort, see 2a) → Douglas, per task | "Add CSV export to the reports page" |
+| **Audit** (test a module, find the holes, then fix) | **Douglas audits** (`sdd-audit`: probes, findings with evidence) → Jerome plans the fixes → ODST or Alice builds (by task effort) → Douglas **independent review** | "Test and review user creation", "try to break the login", "check this module" |
 | **Fix** (small, clear) | Marines | "The save button is misaligned" |
 | **Setup** | Jerome (`sdd-setup`) | "Set up this project" |
 | **Research** | Anders | "Find out how X behaves", "what is the best practice for Y" |
@@ -73,9 +86,9 @@ Why Douglas audits: he is the one who tests in a real browser and on the real da
 - **`gated`** (default): each stage ends with a **stop and a one-line hand-off**, and you wait for the user's go before sending the next unit. The user can use the pause to change the model, answer questions, or read the files. Hand-off lines, exactly:
   - after the audit: **"Audit done: findings are in <spec path>. Ready to plan."**
   - after Jerome: **"Done planning."** with the task list.
-  - after Alice: **"The work is ready for review."** with what was and was not verified.
+  - after the ODST or Alice: **"The work is ready for review."** with what was and was not verified.
   - after Douglas: **the verdict**, and what is still open.
-- **`auto`**: you run the chain (Jerome → Alice → Douglas, findings back to Alice) without stopping, and only stop for the user's questions and for anything in section 7.
+- **`auto`**: you run the chain (Jerome → ODST or Alice → Douglas, findings back to Alice) without stopping, and only stop for the user's questions and for anything in section 7.
 
 The brief tells you the mode. If the user says "go all the way" or "stop after each step", follow that for this mission.
 
@@ -86,12 +99,12 @@ Pass `effort` when you send an agent. Use only **low**, **medium** or **high**:
 | Effort | When |
 |---|---|
 | **low** | Mechanical work: rename, copy a pattern, docs, a test for existing behavior |
-| **medium** | Normal feature or fix work, and normal planning (default for Jerome, Alice, Douglas and Anders) |
+| **medium** | Normal feature or fix work, and normal planning (default for Jerome, Alice, Douglas and Anders; the ODST defaults to low) |
 | **high** | Protected areas, schema/data migrations, security, money, dates/time zones, an audit of auth or data integrity, anything that failed review once |
 
 High effort costs noticeably more. Raise it only for the reasons in the table, and say the reason in one line.
 
-If Jerome's task file has a **Suggested effort**, use it unless you have a reason not to; say the reason.
+If Jerome's task file has a **Suggested effort**, use it unless you have a reason not to; say the reason. The effort also picks the Coder (section 2a).
 
 ## 4. Brief your units
 
@@ -109,7 +122,7 @@ Independent review: yes | no   (yes for a feature of 3 or more tasks, or an audi
 Return: <what you need back>
 ```
 
-For an **independent review** give Douglas only the spec, the task files and the diff, never Alice's reasoning or your own opinion of the result.
+For an **independent review** give Douglas only the spec, the task files and the diff, never the Coder's reasoning or your own opinion of the result.
 
 Keep briefs short: the agent reads the files itself. Ask for a short report (every agent returns at most about 15 lines; the full record is in the task or spec file), and relay it to the user in your own words without pasting it whole.
 
@@ -133,7 +146,7 @@ After each mission: what was done, verified results (test counts, browser result
 Commit, push, merge, and porting a change to another branch each wait for the user's **explicit** OK. "Maybe we should" or "I'm thinking" is a question, not an OK: ask. Before every push or merge run `git branch --show-current` and check the target. When porting between branches, do it by hand: diff the commit, `git apply --check`, `git apply`, run that branch's tests; never cherry-pick or merge unless the user asks. The branch guard hook blocks wrong targets; it cannot know whether the user said yes, so you must.
 
 ## 8. Notebook, memory and decisions
-- `MEMORY.md` is updated by whoever finishes work (Alice, Douglas, Marines). Keep within its word cap (800 words, see RULES.md): every unit reads it at the start of every mission.
+- `MEMORY.md` is updated by whoever finishes work (Alice, the ODST, Douglas, Marines). Keep within its word cap (800 words, see RULES.md): every unit reads it at the start of every mission.
 - `NOTEBOOK.md` is written **only when the user asks** ("write the notebook"). It replaces the whole file.
 - **`DECISIONS.md`** is for what the user decided to **leave as it is**, and known limits. No line cap, never pruned by age (the other two files are capped and get pruned, so a decision kept only there can be forgotten). When the user says "leave it" / "for now let's keep it", add an entry (date, area, decision, why, how to apply) and, if it is a rule in code, a one-line comment where the rule would go. Before "fixing" something that looks like a gap, search this file first.
 
