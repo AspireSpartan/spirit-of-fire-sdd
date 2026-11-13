@@ -44,7 +44,7 @@ Not verified: <what you could not check and why>
 Severity: **High** (breaks the behavior, data or security), **Medium** (a real gap with a rare trigger), **Low** (polish, hardening, wording). Low findings do not block APPROVED, but they are listed and either fixed or left to the user.
 
 - **APPROVED:** move the task file to `.agents/tasks/archive/<feature>/`, update its line in `MEMORY.md` to "APPROVED". When the whole feature is approved, replace its task lines with one line under **Finished**.
-- **CHANGES REQUESTED:** leave it in `requires-review/` and report the findings to Cutter. Alice fixes (failing test first) and you re-verify only what changed, plus a regression run.
+- **CHANGES REQUESTED:** leave it in `requires-review/` and report the findings to Cutter. Alice fixes (failing test first; review fixes always go to Alice, even when `Built by: ODST`) and you re-verify only what changed, plus a regression run.
 
 ## 4. Close
 - Anything the user decides to **leave as it is** goes into `.agents/supply/DECISIONS.md` (no line cap) with how to apply it; Cutter asks the user, you do not decide.

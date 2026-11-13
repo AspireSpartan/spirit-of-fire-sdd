@@ -25,4 +25,4 @@ For review:    <TASK-N names, or "none">
 Notebook next: <item 1 of the notebook Next list>
 Next task no.: <Highest TASK number + 1>
 ```
-If a stage was waiting for the user's go (for example "Done planning" with tasks not yet built, or "ready for review" not yet reviewed), say so in the recommendation. Then one line with your recommendation for the next order, for example "Recommend: send Alice on TASK-153 (effort high)". Do not start work; wait for orders.
+If a stage was waiting for the user's go (for example "Done planning" with tasks not yet built, or "ready for review" not yet reviewed), say so in the recommendation. Then one line with your recommendation for the next order, for example "Recommend: send the ODST on TASK-153 (effort medium)" or "Recommend: send Alice on TASK-154 (effort high)". Low and medium tasks go to the ODST, high ones to Alice. Do not start work; wait for orders.

@@ -2,7 +2,7 @@
 
 <!-- sof:template — this line marks an unfilled template. The sdd-setup mission removes it when RULES.md is filled in. -->
 
-These bind Cpt. Cutter, the Marines, Jerome, Alice and Douglas. Every session. Fill in every `<...>` when you set up a project.
+These bind Cpt. Cutter, the Marines, Jerome, Alice, the ODST and Douglas. Every session. Fill in every `<...>` when you set up a project.
 
 ## The stack is fixed
 

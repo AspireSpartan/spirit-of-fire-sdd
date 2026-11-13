@@ -22,6 +22,17 @@
                       branches\<branch>\NOTEBOOK.md, specs\, tasks\               one set per branch
                     An existing <project>\.agents\ is COPIED in (never moved or overwritten).
 
+  Skipping parts (-Skip), for when you already have your own setup for something:
+    Agents     the Spartans and the ODST (agent files)
+    Skills     the armory skills
+    Commander  .claude\CPT_CUTTER.md and the CLAUDE.md loader lines (they are shown for you to add by hand)
+    Hooks      .claude\settings.json and .claude\hooks\ (session brief, branch guard, notebook reminder, depot map)
+    Depot      the supply depot template (.agents\ or the global depot folder)
+    GitIgnore  the .gitignore file and the lines the installer adds to it
+  Interactive runs ask the same thing after the depot question: Enter installs everything,
+  or type the numbers of the parts to skip.
+    .\install.ps1 -Scope Global -Project "D:\path\to\project" -Skip Hooks,GitIgnore
+
   Default: copies files only and never overwrites. Anything that already exists is listed as
   SKIPPED so you can merge it by hand.
 
@@ -52,6 +63,8 @@ param(
   [ValidateSet('Project', 'ProjectIgnored', 'Global')]
   [string]$Depot,
   [string]$DepotName,
+  [ValidateSet('Agents', 'Skills', 'Commander', 'Hooks', 'Depot', 'GitIgnore')]
+  [string[]]$Skip = @(),
   [switch]$Update
 )
 
@@ -60,6 +73,20 @@ $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $userClaude = Join-Path $env:USERPROFILE '.claude'
 $utf8 = New-Object System.Text.UTF8Encoding $false
+
+# Parts the user can skip, in the order the interactive question lists them.
+$partInfo = [ordered]@{
+  'Agents'    = 'Spartans and ODST       agent files (jerome, alice, odst, douglas, anders)'
+  'Skills'    = 'Armory skills           sdd-plan, sdd-code, sdd-review, sitrep, ...'
+  'Commander' = 'Commander               .claude\CPT_CUTTER.md + the CLAUDE.md loader lines'
+  'Hooks'     = 'Hooks                   .claude\settings.json + .claude\hooks\ (session brief, branch guard, notebook reminder)'
+  'Depot'     = 'Supply depot            rules, memory, notebook, specs, tasks template'
+  'GitIgnore' = '.gitignore              the template file and the lines added to it'
+}
+$skipSet = New-Object System.Collections.Generic.List[string]
+foreach ($s in $Skip) { if (-not $skipSet.Contains($s)) { $skipSet.Add($s) } }
+function Test-Skip([string]$part) { return $skipSet.Contains($part) }
+function Add-Skip([string]$part) { if (-not $skipSet.Contains($part)) { $skipSet.Add($part) } }
 
 # Project files that belong to the project, not to the framework: -Update never replaces them.
 $keepPatterns = @(
@@ -105,10 +132,10 @@ function Get-Relative([string]$from, [string]$full) {
   return $full.Substring($from.Length).TrimStart('\', '/').Replace('/', '\')
 }
 
-function Copy-Tree([string]$from, [string]$to, [bool]$protectProjectFiles, [string]$exclude) {
+function Copy-Tree([string]$from, [string]$to, [bool]$protectProjectFiles, [string[]]$exclude) {
   Get-ChildItem -Path $from -Recurse -File -Force | ForEach-Object {
     $relative = Get-Relative $from $_.FullName
-    if ($exclude -and $relative -like "$exclude*") { return }
+    foreach ($x in @($exclude | Where-Object { $_ })) { if ($relative -like "$x*") { return } }
     Copy-One $_.FullName (Join-Path $to $relative) ($protectProjectFiles -and (Test-Kept $relative))
   }
 }
@@ -205,8 +232,8 @@ function Read-ProjectPath([bool]$required) {
     if ($required) {
       $answer = (Read-Host "Project folder (Enter = $current)").Trim().Trim('"')
     } else {
-      $answer = (Read-Host "Project folder to set up too (Enter = $current, '-' = skip, agents and skills only)").Trim().Trim('"')
-      if ($answer -eq '-') { return '' }
+      $answer = (Read-Host "Project folder to set up too (Enter = $current, S = skip, agents and skills only)").Trim().Trim('"')
+      if ($answer -eq '-' -or $answer -eq 'S' -or $answer -eq 's') { return '' }
     }
     if (-not $answer) { $answer = $current }
     if (Test-Path $answer -PathType Container) { return (Resolve-Path $answer).Path }
@@ -271,11 +298,14 @@ if (-not $Scope -and -not $UserLevel -and -not $Project) {
   $interactive = $true
   Write-Host "`nSpirit of Fire SDD installer" -ForegroundColor Cyan
   if ($Update) { Write-Host 'Update mode: framework files that changed are replaced (old copy kept as .bak).' -ForegroundColor Cyan }
-  Write-Host 'Where do you want to install the Spartans and skills?'
+  Write-Host 'Where do you want to install the Spartans, the ODST and the skills?'
   Write-Host '  [1] Globally      for ALL projects (in your user .claude folder), plus one project'
   Write-Host '  [2] Project only  everything inside one project; other projects and SDD setups never see it'
-  $Scope = if ((Read-Choice 'Choose 1 or 2' @('1', '2')) -eq '1') { 'Global' } else { 'Project' }
-  $Project = Read-ProjectPath ($Scope -eq 'Project')
+  Write-Host '  [S] Skip          I have my own agents and skills: set up the project files only'
+  $scopeAnswer = Read-Choice 'Choose 1, 2 or S' @('1', '2', 'S')
+  if ($scopeAnswer -eq 'S') { Add-Skip 'Agents'; Add-Skip 'Skills' }
+  $Scope = if ($scopeAnswer -eq '2') { 'Project' } else { 'Global' }
+  $Project = Read-ProjectPath ($Scope -eq 'Project' -or $scopeAnswer -eq 'S')
 } elseif (-not $Scope) {
   # Older options (-UserLevel / -Project): global install, same as before.
   $Scope = 'Global'
@@ -308,13 +338,43 @@ if ($projectFull) {
     Write-Host '  [1] In the project, committed to git (.agents\, the v0.3 layout)'
     Write-Host '  [2] In the project, ignored by git (.agents\ is added to .gitignore)'
     Write-Host '  [3] Global folder, by project and branch (your user .claude\spirit-of-fire\, outside the repository)'
+    Write-Host '  [S] Skip          I keep my own depot (or none): no depot files are created or changed'
     if (Test-Path $configPath) { Write-Host "  (this project uses: $(Get-DepotLabel $currentDepot))" }
-    $Depot = switch (Read-Choice 'Choose 1, 2 or 3' @('1', '2', '3')) { '1' { 'Project' } '2' { 'ProjectIgnored' } '3' { 'Global' } }
-    $depotChosen = $true
+    $depotAnswer = Read-Choice 'Choose 1, 2, 3 or S' @('1', '2', '3', 'S')
+    if ($depotAnswer -eq 'S') {
+      Add-Skip 'Depot'
+      $Depot = $currentDepot
+    } else {
+      $Depot = switch ($depotAnswer) { '1' { 'Project' } '2' { 'ProjectIgnored' } '3' { 'Global' } }
+      $depotChosen = $true
+    }
   } elseif (-not $Depot) {
     $Depot = $currentDepot
   }
 }
+
+# Which parts to install: everything unless the user skips some (for a setup of their own).
+if ($interactive) {
+  $parts = @('Agents', 'Skills')
+  if ($projectFull) { $parts += @('Commander', 'Hooks', 'Depot', 'GitIgnore') }
+  Write-Host "`nWhich parts should be installed? Skip a part when you already have your own setup for it."
+  for ($i = 0; $i -lt $parts.Count; $i++) {
+    $mark = if (Test-Skip $parts[$i]) { '  (skipped)' } else { '' }
+    Write-Host "  [$($i + 1)] $($partInfo[$parts[$i]])$mark"
+  }
+  while ($true) {
+    $answer = (Read-Host 'Enter = install all of these, or type the numbers to SKIP (for example 2,4)').Trim()
+    if (-not $answer) { break }
+    $numbers = @($answer -split '[,\s]+' | Where-Object { $_ })
+    $bad = @($numbers | Where-Object { -not ($_ -match '^\d+$' -and [int]$_ -ge 1 -and [int]$_ -le $parts.Count) })
+    if ($bad.Count -eq 0) {
+      foreach ($n in $numbers) { Add-Skip $parts[[int]$n - 1] }
+      break
+    }
+    Write-Host "Please type numbers from 1 to $($parts.Count), separated by commas, or press Enter." -ForegroundColor Yellow
+  }
+}
+if (Test-Skip 'Depot') { $depotChosen = $false }
 
 $depotBase = ''
 $branchSlug = ''
@@ -347,13 +407,28 @@ if ($Scope -eq 'Project') {
   $copyAgentsAndSkills = [bool]$UserLevel
 }
 
+$copyAgents = $copyAgentsAndSkills -and -not (Test-Skip 'Agents')
+$copySkills = $copyAgentsAndSkills -and -not (Test-Skip 'Skills')
+
+# Project template files that belong to each skippable part.
+$templateExclude = @()
+if (Test-Skip 'Commander') { $templateExclude += @('CLAUDE.md', '.claude\CPT_CUTTER.md') }
+if (Test-Skip 'Hooks') { $templateExclude += @('.claude\settings.json', '.claude\hooks\') }
+if ((Test-Skip 'Depot') -or $Depot -eq 'Global') { $templateExclude += '.agents\' }
+if (Test-Skip 'GitIgnore') { $templateExclude += '.gitignore' }
+
 # --- Preview ---------------------------------------------------------------------
 
 $action = if ($Update) { 'framework files that differ are replaced after a .bak copy; your own files are KEPT' } else { 'these are SKIPPED, never overwritten' }
 Write-Host "`n== Preview ($scopeName install)" -ForegroundColor Cyan
-if ($copyAgentsAndSkills) { Write-Host "Agents and skills go to: $(Split-Path -Parent $agentsDir)" } else { Write-Host 'Agents and skills:       not installed this run (add -UserLevel for them)' }
+if ($copyAgents -or $copySkills) { Write-Host "Agents and skills go to: $(Split-Path -Parent $agentsDir)" }
+elseif ($copyAgentsAndSkills) { Write-Host 'Agents and skills:       skipped (you use your own)' }
+else { Write-Host 'Agents and skills:       not installed this run (add -UserLevel for them)' }
+if ($skipSet.Count -gt 0) { Write-Host "Skipped parts:           $($skipSet -join ', ')" -ForegroundColor Yellow }
 if ($projectFull) { Write-Host "Project files go to:     $projectFull" } else { Write-Host 'Project files:           none (no project chosen)' }
-if ($projectFull) {
+if ($projectFull -and (Test-Skip 'Depot')) {
+  Write-Host "Supply depot:            skipped (nothing created; Cutter's orders still expect the $(Get-DepotLabel $Depot) layout)"
+} elseif ($projectFull) {
   switch ($Depot) {
     'Project' { Write-Host "Supply depot:            $projectFull\.agents (committed with the code)" }
     'ProjectIgnored' { Write-Host "Supply depot:            $projectFull\.agents (ignored by git)" }
@@ -365,17 +440,21 @@ if ($projectFull) {
 }
 
 $found = @()
-if ($copyAgentsAndSkills) {
+if ($copyAgents) {
   foreach ($name in Get-PackageAgents) {
     if (Test-Path (Join-Path $agentsDir $name)) { $found += "agent  $(Join-Path $agentsDir $name)" }
   }
+}
+if ($copySkills) {
   foreach ($name in Get-PackageSkills) {
     if (Test-Path (Join-Path $skillsDir $name)) { $found += "skill  $(Join-Path $skillsDir $name)" }
   }
 }
 if ($projectFull) {
-  $items = @('CLAUDE.md', '.claude\settings.json', '.claude\hooks', '.claude\spirit-of-fire.json')
-  if ($Depot -ne 'Global') { $items += '.agents' }
+  $items = @('.claude\spirit-of-fire.json')
+  if (-not (Test-Skip 'Commander')) { $items += 'CLAUDE.md' }
+  if (-not (Test-Skip 'Hooks')) { $items += @('.claude\settings.json', '.claude\hooks') }
+  if ($Depot -ne 'Global' -and -not (Test-Skip 'Depot')) { $items += '.agents' }
   foreach ($item in $items) {
     if (Test-Path (Join-Path $projectFull $item)) { $found += "file   $(Join-Path $projectFull $item)" }
   }
@@ -389,12 +468,12 @@ if ($found.Count -eq 0) {
 
 if ($scopeName -eq 'Project only') {
   $shadow = @()
-  foreach ($name in Get-PackageAgents) {
+  if ($copyAgents) { foreach ($name in Get-PackageAgents) {
     if (Test-Path (Join-Path $userClaude "agents\$name")) { $shadow += "agent  $(Join-Path $userClaude "agents\$name")" }
-  }
-  foreach ($name in Get-PackageSkills) {
+  } }
+  if ($copySkills) { foreach ($name in Get-PackageSkills) {
     if (Test-Path (Join-Path $userClaude "skills\$name")) { $shadow += "skill  $(Join-Path $userClaude "skills\$name")" }
-  }
+  } }
   if ($shadow.Count -gt 0) {
     Write-Host 'Your user folder also has these names. Claude Code may use those copies instead of the project ones:' -ForegroundColor Yellow
     $shadow | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
@@ -413,8 +492,12 @@ if ($projectFull) {
     elseif ($text -match '(?m)^\s*@\.agents/CPT_CUTTER\.md') { $claudeMdKind = 'v03' }
     else { $claudeMdKind = 'other' }
   }
-  if ($Depot -eq 'Global' -and (Test-Path (Join-Path $projectFull '.agents'))) {
+  if ($Depot -eq 'Global' -and -not (Test-Skip 'Depot') -and (Test-Path (Join-Path $projectFull '.agents'))) {
     Write-Host "Existing $projectFull\.agents will be COPIED into the depot (nothing there is moved, deleted or overwritten)." -ForegroundColor Yellow
+  }
+  if (Test-Skip 'Commander') { $claudeMdKind = 'skipped' }
+  if ((Test-Skip 'Hooks') -and $Depot -eq 'Global') {
+    Write-Host 'Hooks skipped with a global depot: Cutter gets no Depot map at session start, so tell him where the depot is.' -ForegroundColor Yellow
   }
   switch ($claudeMdKind) {
     'v03' { Write-Host 'CLAUDE.md loads the v0.3 commander (.agents/CPT_CUTTER.md): its loader lines will be updated (backup kept).' -ForegroundColor Yellow }
@@ -431,24 +514,22 @@ if ($interactive) {
 
 # --- Copy ----------------------------------------------------------------------
 
-if ($copyAgentsAndSkills) {
-  Write-Host "`n== Spartans -> $agentsDir" -ForegroundColor Cyan
-  Copy-Tree (Join-Path $here 'user-level\agents') $agentsDir $false ''
+if ($copyAgents) {
+  Write-Host "`n== Spartans and ODST -> $agentsDir" -ForegroundColor Cyan
+  Copy-Tree (Join-Path $here 'user-level\agents') $agentsDir $false @()
+}
+if ($copySkills) {
   Write-Host "`n== Armory skills -> $skillsDir" -ForegroundColor Cyan
-  Copy-Tree (Join-Path $here 'user-level\skills') $skillsDir $false ''
+  Copy-Tree (Join-Path $here 'user-level\skills') $skillsDir $false @()
 }
 
 if ($projectFull) {
   $template = Join-Path $here 'project-template'
   Write-Host "`n== Project template -> $projectFull" -ForegroundColor Cyan
-  if ($Depot -eq 'Global') {
-    Copy-Tree $template $projectFull $true '.agents\'
-  } else {
-    Copy-Tree $template $projectFull $true ''
-  }
+  Copy-Tree $template $projectFull $true $templateExclude
 
-  if ($Depot -eq 'Global') {
-    $script:depotCopied = 0
+  $script:depotCopied = 0
+  if ($Depot -eq 'Global' -and -not (Test-Skip 'Depot')) {
     $oldAgents = Join-Path $projectFull '.agents'
     if (Test-Path $oldAgents) {
       Write-Host "`n== Existing .agents -> depot $depotBase" -ForegroundColor Cyan
@@ -479,12 +560,16 @@ if ($projectFull) {
   if ($Depot -eq 'ProjectIgnored') { $ignoreLines += '.agents/' }
   $currentIgnore = if (Test-Path $gitignore) { [System.IO.File]::ReadAllLines($gitignore) } else { @() }
   $missing = @($ignoreLines | Where-Object { $currentIgnore -notcontains $_ })
-  if ($missing.Count -gt 0) {
+  if ((Test-Skip 'GitIgnore') -or (Test-Skip 'Depot')) {
+    if ($missing.Count -gt 0 -and -not (Test-Skip 'Depot')) {
+      Write-Host "GitIgnore skipped. Add these lines to your .gitignore yourself: $($missing -join ', ')" -ForegroundColor Yellow
+    }
+  } elseif ($missing.Count -gt 0) {
     $add = "`r`n# Spirit of Fire depot`r`n" + ($missing -join "`r`n") + "`r`n"
     [System.IO.File]::AppendAllText($gitignore, $add, $utf8)
     Write-Host "added to .gitignore: $($missing -join ', ')" -ForegroundColor Green
   }
-  if ($Depot -ne 'Project') {
+  if ($Depot -ne 'Project' -and -not (Test-Skip 'Depot')) {
     $tracked = Invoke-Git $projectFull @('ls-files', '.agents')
     if ($tracked) {
       Write-Host 'Note: .agents\ files are still tracked by git. To stop committing them (your files stay on disk):' -ForegroundColor Yellow
@@ -509,7 +594,10 @@ if ($projectFull) {
 
   # CLAUDE.md: make the loader lines match the depot.
   $loader = Get-LoaderLines $Depot $DepotName
-  if (-not $claudeMdExisted -or $claudeMdKind -eq 'v04' -or $claudeMdKind -eq 'v03') {
+  if (Test-Skip 'Commander') {
+    Write-Host "`nCommander skipped. For Spirit of Fire to load, CLAUDE.md needs these lines (and .claude\CPT_CUTTER.md from this package):" -ForegroundColor Yellow
+    $loader | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
+  } elseif (-not $claudeMdExisted -or $claudeMdKind -eq 'v04' -or $claudeMdKind -eq 'v03') {
     $before = [System.IO.File]::ReadAllLines($claudeMd) -join "`n"
     $copy = "$claudeMd.tmp-$stamp"
     Copy-Item $claudeMd $copy
@@ -537,10 +625,10 @@ if ($projectFull) {
 }
 
 Write-Host "`nDone ($scopeName). Restart Claude Code so it picks up new agents, skills and hooks." -ForegroundColor Cyan
-if ($Scope -eq 'Project') {
+if ($Scope -eq 'Project' -and ($copyAgents -or $copySkills)) {
   Write-Host 'The agents and skills are in the project''s .claude folder: commit them with the project, and run the installer again for each project you want Spirit of Fire in.' -ForegroundColor Cyan
 }
-if ($projectFull -and $Depot -eq 'Global') {
+if ($projectFull -and $Depot -eq 'Global' -and -not (Test-Skip 'Depot')) {
   Write-Host "Depot: $depotBase. The first session asks once to allow CLAUDE.md to load files from it; say yes." -ForegroundColor Cyan
   if ($script:depotCopied -gt 0 -and (Test-Path (Join-Path $projectFull '.agents'))) {
     Write-Host "Your old $projectFull\.agents was copied, not moved. Check the depot, then delete .agents\ yourself." -ForegroundColor Cyan
