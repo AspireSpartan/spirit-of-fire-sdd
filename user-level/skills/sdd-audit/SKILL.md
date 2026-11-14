@@ -17,7 +17,7 @@ List every way the module's data can be written: forms, API endpoints, imports (
 
 ## 3. Probe, on isolated data only
 - Use the project's isolated test environment (RULES.md "Testing standard"). **Never probe development, staging, UAT or production data.** If you cannot tell the environment is isolated, stop and report.
-- Write a throwaway probe: an API script or a browser test named `_probe-<module>` (see `sdd-review/references/playwright.md`). It prints one clear line per probe. **Delete it when you finish** and confirm it is gone (`ls`, `git status`).
+- Write a throwaway probe in the **session scratchpad**, never in the repo: start from `sdd-review/references/review-script.template.cjs` plus your probe lines, and follow the project's browser-check page if it has one (`sdd-review/references/playwright.md`). It prints one clear line per probe. Screenshots go to the project's evidence folder. **Delete the probe when you finish** and confirm with `git status`.
 - Check both layers: what the **API** returns and what the **user sees** on screen (a screenshot of the message, then a reload).
 
 ### The attack list (use what applies)
@@ -35,7 +35,7 @@ List every way the module's data can be written: forms, API endpoints, imports (
 | Who is allowed | Can a lower role call it directly with a token? |
 
 ## 4. Write the findings
-Folder `.agents/specs/<module>-review/`, file `spec.md`, from `templates/findings.md`. Every finding has an ID (U1, U2, ...), a **severity**, what happens, and **evidence** (the request and response, the rows, a screenshot path). Also list what you tried that was **already safe**, so nobody re-tests it.
+Folder `.agents/specs/<module>-review/`, file `spec.md`, from `templates/findings.md`. Every finding has an ID (U1, U2, ...), a **severity**, what happens, and **evidence** (the request and response, the rows, the evidence paths: screenshots, `run.log`). Also list what you tried that was **already safe**, so nobody re-tests it.
 
 Severity:
 - **High**: data corruption or loss, a security or access hole, an account or record left in a harmful half-state.

@@ -72,6 +72,23 @@ if (rulesPath && readFileSync(rulesPath, 'utf8').includes('sof:template')) {
   out.push('', 'RULES.md is not filled in (still the template). Recommend the first mission: Jerome with sdd-setup.');
 }
 
+// Browser checks: warn like RULES.md when the page is missing or still the template.
+// Only for a filled-in project (an unfilled RULES.md already sends the user to setup).
+if (rulesPath && !readFileSync(rulesPath, 'utf8').includes('sof:template')) {
+  const browserPath = existing(depot.files.browserChecks);
+  if (!browserPath) {
+    out.push('', `BROWSER_CHECKS.md not found (${depot.files.browserChecks}). Douglas will stop UI reviews with "browser setup missing". Offer: Jerome with sdd-setup, browser part (or the user waives browser checks).`);
+  } else {
+    const text = readFileSync(browserPath, 'utf8');
+    const todos = (text.match(/(^|[^`])TODO: ask the user/g) || []).length; // `TODO: ask the user` in backticks is the page's own instruction
+    if (text.includes('sof:template')) {
+      out.push('', 'BROWSER_CHECKS.md is not filled in (still the template). Offer: Jerome with sdd-setup, browser part.');
+    } else if (todos) {
+      out.push('', `BROWSER_CHECKS.md has ${todos} open "TODO: ask the user" item(s). Ask the user before the next browser run.`);
+    }
+  }
+}
+
 const memoryPath = existing(depot.files.memory);
 if (memoryPath) {
   const match = readFileSync(memoryPath, 'utf8').match(/Highest TASK number:\s*(\d+)/i);

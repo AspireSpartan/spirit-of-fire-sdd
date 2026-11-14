@@ -18,6 +18,8 @@ A reusable **spec-driven development (SDD)** setup for Claude Code, for any full
 
 **In one sentence:** you give the order, Cutter decides whether the Marines handle it or the Spartans take it (Jerome plans, the ODST or Alice builds each task by its effort, Douglas reviews), and every job leaves a written record in the supply depot.
 
+**New in v0.5** (see `CHANGELOG.md`): **browser checks that actually ship.** Each project gets a browser-check page (`.agents/supply/BROWSER_CHECKS.md`: dev server, accounts per role, routes, UI paths, test data, evidence), the installer can set up one pinned Playwright harness (it asks *Install browser checks? Y/N*; no browser download), and Douglas runs one standard review script on every UI task. A UI task is not approved without its **Browser evidence**, and anything still marked "to be tested in a browser" forces a browser run. The improvements a real project made by hand to v0.4.1 are built in, so `-Update` no longer rolls them back.
+
 **New in v0.4.1** (see `CHANGELOG.md`): the **ODST**, a second Coder on Haiku. Jerome's low and medium tasks now go to the ODST, and Alice (Sonnet) keeps the high ones, the tasks the ODST hand back, and the review fixes. Most tasks are low or medium, so most building now runs on the cheaper model, with the same tests and the same review by Douglas. The installer also gets a **Skip** choice on every question, and a parts list, for when you already have your own setup for something.
 
 **New in v0.4** (see `CHANGELOG.md`): the installer asks **where to install** (globally or this project only) and **where the supply depot lives**: in the project and committed, in the project but ignored by git, or in a **global folder per project and branch**, outside the repository, so specs and memory are never committed and every branch's work can be read without switching branches.
@@ -36,7 +38,8 @@ Spirit-of-Fire-SDD/
 ├── install.ps1                ← asks: global or project only, where the depot lives, and which parts to skip; then copies (never overwrites; -Update replaces framework files after a backup)
 ├── user-level/                ← install ONCE for your Windows user; shared by all projects
 │   ├── agents/                    jerome.md, alice.md, odst.md (low/medium tasks), douglas.md (reviews and audits), anders.md (research, skill vetting)
-│   └── skills/                    sdd-setup, sdd-audit, sdd-plan, sdd-code, sdd-review (+ demo tour), sdd-marine, sitrep, find-skills (Anders only)
+│   ├── skills/                    sdd-setup, sdd-audit, sdd-plan, sdd-code, sdd-review (+ standard review script, demo tour), sdd-marine, sitrep, find-skills (Anders only)
+│   └── tools/pw-harness/          browser checks: package.json (exact pins), smoke.cjs, HARNESS.md template
 └── project-template/          ← copy into EACH project
     ├── CLAUDE.md                  short loader: Cutter's orders + RULES and MEMORY from the depot
     ├── .gitignore                 ignores the hooks' per-machine state and settings.local.json
@@ -50,7 +53,7 @@ Spirit-of-Fire-SDD/
     │       ├── branch-guard.mjs       blocks push/merge/PR to branches not on your list
     │       └── notebook-reminder.mjs  offers to write the notebook when context gets full
     └── .agents/                   the supply depot (in the project, or copied to the global folder)
-        ├── supply/                RULES.md, MEMORY.md, NOTEBOOK.md, DECISIONS.md
+        ├── supply/                RULES.md, MEMORY.md, NOTEBOOK.md, DECISIONS.md, BROWSER_CHECKS.md
         ├── policies/              your company, client or personal rules (empty; Jerome asks at setup)
         ├── specs/                 one folder per request
         └── tasks/                 TASK-N files → requires-review/ → archive/
@@ -81,7 +84,7 @@ Open PowerShell in this folder and run:
 .\install.ps1
 ```
 
-It asks four questions, then shows a preview before it copies anything. **Every question has a Skip choice**, for when you already have your own setup for that part:
+It asks five questions, then shows a preview before it copies anything. **Every question has a Skip choice**, for when you already have your own setup for that part:
 
 1. **Where to install:**
    - **[1] Globally:** the Spartans and skills go to `C:\Users\<you>\.claude\` and every project on this computer sees them. The commander, supply depot and hooks go into the project you name. Pick this when Spirit of Fire is your only SDD setup.
@@ -105,7 +108,8 @@ It asks four questions, then shows a preview before it copies anything. **Every 
    Enter = install all of these, or type the numbers to SKIP (for example 2,4):
    ```
    Skipping the Commander prints the `CLAUDE.md` lines Spirit of Fire needs, so you can add them by hand. Skipping the Hooks also turns off the branch guard and the session brief, so only skip them if your own hooks would clash.
-5. **The preview** lists the skipped parts and what is already there with the same name: Spartans, skills, `CLAUDE.md`, `.claude\settings.json`, `.claude\hooks` and `.agents\`. Those are skipped, never overwritten. For a project-only install it also warns when your user folder has a Spartan or skill of the same name, because Claude Code may use that copy instead. Type `Y` to go on or `N` to stop with nothing copied.
+5. **Install browser checks? (Y/N)** `Y` sets up the pinned Playwright harness that Douglas, Alice and the ODST use (see "Browser checks" below). It needs Node.js and npm. `N` skips it; run the installer again later, or `-Skip Browser` without questions.
+6. **The preview** lists the skipped parts and what is already there with the same name: Spartans, skills, `CLAUDE.md`, `.claude\settings.json`, `.claude\hooks` and `.agents\`. Those are skipped, never overwritten. For a project-only install it also warns when your user folder has a Spartan or skill of the same name, because Claude Code may use that copy instead. Type `Y` to go on or `N` to stop with nothing copied.
 
 **Trying it next to another SDD setup?** Use project only, on a separate git branch or worktree of the project, and check the preview. If it lists `CLAUDE.md` or `.claude\settings.json`, Spirit of Fire or its hooks won't load until you merge them (see "already has a CLAUDE.md" below).
 
@@ -120,7 +124,7 @@ It asks four questions, then shows a preview before it copies anything. **Every 
 .\install.ps1 -Scope Global  -Project "D:\path\to\your-project" -Skip Hooks,GitIgnore   # keep your own hooks and .gitignore
 ```
 
-`-Depot` is `Project` (default), `ProjectIgnored` or `Global`; `-DepotName <name>` sets the global folder's name. `-Skip` takes any of `Agents`, `Skills`, `Commander`, `Hooks`, `Depot`, `GitIgnore`, separated by commas.
+`-Depot` is `Project` (default), `ProjectIgnored` or `Global`; `-DepotName <name>` sets the global folder's name. `-Skip` takes any of `Agents`, `Skills`, `Commander`, `Hooks`, `Depot`, `GitIgnore`, `Browser`, separated by commas. Without questions, browser checks are installed unless you pass `-Skip Browser`.
 
 The older `-UserLevel` and `-Project "<path>"` options still work and mean a global install, as before.
 
@@ -167,7 +171,7 @@ How it works:
 ### Step 2: Finish the setup in the project
 
 Then, in that project:
-1. **Check Node.js is installed** (`node -v`). The hooks need it.
+1. **Check Node.js is installed** (`node -v`). The hooks need it, and browser checks need npm too (`npm -v`).
 2. **Start Claude Code in the project.** The session brief sees that `RULES.md` is still the template, and Cutter offers the **first mission**:
    > "Send Jerome on the setup mission? He inspects the code and fills in RULES.md for you to review."
 
@@ -216,7 +220,9 @@ You talk to Cutter as usual. He decides who takes the job and tells you in one l
 | "Go" / "continue" after a stop (gated mode) | Cutter sends the next unit. |
 | "Continue" / "do the next task" | The **ODST** builds the next task if Jerome marked it low or medium, **Alice** if it is high; then **Douglas** reviews it. |
 | "Send Alice on TASK-12" | You override who builds. (The ODST never takes a high task; lower its effort in the task file first if you want that.) |
-| "Review TASK-12, and I want to watch the browser" | **Douglas** runs Playwright in a **visible** browser window. |
+| "Review TASK-12, and I want to watch the browser" | **Douglas** runs the standard review script in a **visible** browser window. |
+| "Set up browser checks" (or Douglas reports "browser setup missing") | **Jerome** fills `BROWSER_CHECKS.md` from the code (`sdd-setup`, browser part) and asks you what the code can't tell: test accounts, where their password lives, the port to avoid, the test-data tag. |
+| "Send the ODST on the medium tasks alongside Alice" | **Parallel drop:** Alice builds the high task while the ODST builds the medium ones, each on its own task file. Only on your order. |
 | "Just fix it" / "send the Spartans" | You override Cutter's choice. |
 | "Write the notebook" | Cutter writes the session handoff (only when you ask). |
 | "Demo the whole app, two rounds, one window" | **Douglas** runs a guided, visible tour (`sdd-review/references/demo-tour.md`): one browser, signing out and in between roles, with a caption on screen. |
@@ -254,7 +260,30 @@ Jerome suggests an effort in each task file, and Cutter normally follows it. The
 Cutter (and every Spartan) never commits, pushes, merges or ports a change to another branch until you say so. "Maybe we should" counts as a question, not a yes. The branch guard hook blocks wrong *targets*; this rule covers the *decision*.
 
 ### Watching the browser tests
-Douglas runs Playwright **headless** (no window) by default. To watch, say so when you ask for the review: "and show me the browser" or "visible test". He then runs with one visible window, slowed down so you can follow it.
+Douglas runs the browser checks **headless** (no window) by default. To watch, say so when you ask for the review: "and show me the browser" or "visible test". He then runs with one visible window, slowed down so you can follow it.
+
+---
+
+## Browser checks
+
+Until v0.4.1 the framework *said* Douglas reviews in a browser, but shipped nothing to make it work: every session improvised its own harness and checklist. v0.5 ships three pieces, so every browser run is done the same way.
+
+**1. The browser-check page** (`.agents/supply/BROWSER_CHECKS.md`, one per project). How browser runs are done in *this* project: the harness path, how to start a dev server on a free port (never the one you use), the database check, the test accounts per role and where their password lives (never the password itself), the routes each role can open, the **gate paths** (which folders count as UI), the check set, test-data rules (a tag on everything a run saves, delete by id only, before/after counts), the evidence folder (`.agents/evidence/TASK-N/`) and the **axe baseline** (known accessibility items, kept in `DECISIONS.md`). Jerome's setup mission fills what the code shows and marks the rest `TODO: ask the user`. The session brief warns while the page is missing, still the template, or has open TODOs. `RULES.md` "Commands" points to it.
+
+**2. The harness** (`%USERPROFILE%\.claude\tools\pw-harness\`; a project-only install puts it in `<project>\.claude\tools\pw-harness\`, ignored by git). One pinned install of `playwright-core` and `axe-core` (exact versions, no `^`), shared by every review and audit and never inside a repo. It **downloads no browser**: the installer finds the Chromium build Playwright already cached in `%LOCALAPPDATA%\ms-playwright\`, asks you when none is found or the build differs, writes the paths to `harness.json` and `HARNESS.md`, and runs a smoke test (`node smoke.cjs` prints `<playwright-core> <axe-core> ok`). Rules in `HARNESS.md`: never `npx playwright install`, never upgrade without your OK, localhost only, scripts in the scratchpad.
+
+**3. The standard review script** (`sdd-review/references/review-script.template.cjs`). Copied to the session scratchpad per task and filled from the page. Per role and route: viewports 360, 390 and 1280 plus 200% zoom, sideways scroll, axe (NEW vs the baseline), console errors, a 40-stop keyboard walk, and for each dialog: Tab-out (rapid and settled), Escape and focus return. Screenshots and a `run.log` go to the evidence folder; one `PASS|FAIL|INFO` line per check and a `SUMMARY`.
+
+**How Douglas decides to run it:**
+- **Required** for any task that touches the page's gate paths. The verdict gets a **Browser evidence** block (roles, routes, viewports, axe, keyboard and focus, console, sideways scroll, test data, evidence folder). Without it a UI task is **CHANGES REQUESTED** ("browser evidence missing"), unless your brief waives it in your own words.
+- **Open browser items force a run**, even when the diff looks like it touches no UI: an unticked browser box, a Coder's `Browser: NOT RUN (<reason>)` line, or a note like "to be tested in a browser". Each gets a result and an evidence path, or stays under **Not verified** with the reason.
+- **No page yet:** he stops the browser step and reports **"browser setup missing"**; Cutter offers the setup step. Only you can waive it.
+
+**Who else runs it:** Alice before handing off a UI task, and the ODST on every planned task, including medium tasks sent alongside Alice. **Skipped on quick fixes:** the Marines and the ODST on a quick fix only write `Browser: NOT RUN (quick fix)`; Douglas still runs the browser when he reviews such a task.
+
+**Why no third-party Playwright skill?** Six candidates were vetted by Anders (Microsoft `playwright-cli`, Currents `playwright-best-practices`, Anthropic `webapp-testing`, lackeyjb and testdino-hq `playwright-skill`, OpenAI `playwright`) and none is shipped. The gap was missing *procedure*, not Playwright knowledge; a generic skill knows nothing about your login, ports, test data or axe baseline and adds a second way to drive the browser; and several had risky defaults (pre-approved `node`/`npm` commands, unpinned `@latest` installs, headed by default, attaching to your real Chrome). New skills still come only through Anders and your approval.
+
+**Windows only.** The installer and the page's commands are Windows PowerShell; macOS and Linux are out of scope.
 
 ---
 
@@ -300,6 +329,10 @@ These are built into `CPT_CUTTER.md` and the skills:
 | Effort guide | Section 3 of `.claude/CPT_CUTTER.md` |
 | What the session brief shows | `.claude/hooks/session-brief.mjs` |
 | Allowed branches, reminder level, gated or auto hand-offs | `.claude/spirit-of-fire.json` |
+| How browser runs work in a project (accounts, routes, gate paths, test data) | `.agents/supply/BROWSER_CHECKS.md` |
+| The browser check set (viewports, axe tags, keyboard walk) | `sdd-review/references/review-script.template.cjs` |
+| Harness versions | `package.json` in the harness folder (exact versions only, with your OK), then run the installer again |
+| Which browser the harness uses | `harness.json` in the harness folder (or `PW_EXECUTABLE`) |
 | Turn a hook off | Remove its block from `.claude/settings.json` |
 
 ### Updating
@@ -318,6 +351,8 @@ For every file that differs, the old copy is saved next to it as `<name>.bak-<da
 
 Because `RULES.md` is yours, an existing project does **not** receive the new rule sections by itself. Ask Cutter: *"Compare RULES.md with the template and add the missing sections"*, or copy the sections *Testing standard*, *Ripple check*, *Independent review*, *Accepted decisions* and the two new lines under *Branches* by hand. Add `"handoff": "gated"` to your `spirit-of-fire.json` to choose the hand-off mode (gated is the default if the line is missing). `DECISIONS.md` is added automatically if it does not exist yet.
 
+**Browser checks on update:** `-Update` adds `BROWSER_CHECKS.md` to the depot when it is missing (an existing one is yours and KEPT), adds `.agents/evidence/` to `.gitignore` for a committed depot, and checks the harness: it installs or reinstalls the packages only when the pinned versions differ, keeps your `HARNESS.md`, and rewrites `harness.json` with the browser it finds. Then ask Cutter for the setup mission, browser part.
+
 `opus`, `sonnet` and `haiku` always mean the newest version (today Opus 5.5, Sonnet 5.5 and Haiku 5.5). A plain `-Update` also adds the new `odst.md`. `-Update` respects `-Skip` too, so a part you skipped stays yours.
 
 ---
@@ -330,7 +365,7 @@ Because `RULES.md` is yours, an existing project does **not** receive the new ru
 - **The name `CLAUDE.md` must stay.** Claude Code only loads a file with that exact name, so it stays as a tiny loader and the commander's orders live in `.claude/CPT_CUTTER.md`.
 - **Agents folder.** User-level agents must be in `C:\Users\<you>\.claude\agents\`, not inside the skills folder.
 - **The branch guard reads commands, not intentions.** It covers `git push`, `merge`, `rebase` and `gh pr create`, including chained commands (`git add . && git push ...`). It doesn't stop you typing commands yourself in a terminal; it only guards what Claude runs. For full protection, also turn on branch protection in GitHub.
-- **Tested vs. draft.** The hooks and the installer (including `-Update`) were tested. The agents and skills are drafts that encode a workflow proven by hand on a real project (see `CHANGELOG.md`); the ODST is new in v0.4.1 and not yet tried on a real project; try them on one real feature or audit first, then adjust the skills from what you see.
+- **Tested vs. draft.** The hooks and the installer (including `-Update`) were tested up to v0.4.1. In v0.5 the session-brief warnings, the review script and the harness smoke test were run, but the installer's new browser part has not been run on Windows yet: try it once and check its output. The agents and skills are drafts that encode a workflow proven by hand on a real project (see `CHANGELOG.md`); the ODST is new in v0.4.1 and not yet tried on a real project; try them on one real feature or audit first, then adjust the skills from what you see.
 - **Gated mode needs you to answer.** In gated mode nothing moves to the next stage until you say go; that is the point, but it means a long chain takes several messages from you. Switch to `auto` if you prefer fewer stops.
 
 ---

@@ -62,6 +62,8 @@ Read the task's **Suggested effort** before you send a Coder:
 - **CHANGES REQUESTED** from Douglas → the fixes go to Alice, also when the task says `Built by: ODST`.
 - The user can override ("send Alice on TASK-12"). The ODST never takes a high task; if the user wants one on the ODST, they lower the effort in the task file first.
 - Say it in one line: "Sending the ODST: TASK-12, effort low" / "Sending Alice: TASK-13 is high (migration)".
+- **Parallel drop (only on the user's order).** When the user says so ("send the ODST on the medium tasks alongside Alice"), send Alice on the high task and the ODST on the medium tasks at the same time, each on its own task file. Never start a parallel drop by yourself. Put `Drop: alongside Alice (medium task)` in the ODST's brief: on this drop the ODST follows the full browser-check rule (section 2d).
+- **ODST quick fix.** A low task you send the ODST as a quick fix: put `Drop: quick fix` in the brief. The browser-check rule does not apply to it (section 2d).
 
 ODST and Marines are different: the **Marines** are you, on the session model, doing a small fix with no planning; the **ODST** build one of Jerome's planned tasks in a separate, cheaper agent.
 
@@ -92,6 +94,14 @@ Why Douglas audits: he is the one who tests in a real browser and on the real da
 
 The brief tells you the mode. If the user says "go all the way" or "stop after each step", follow that for this mission.
 
+## 2d. Browser checks (`.agents/supply/BROWSER_CHECKS.md`)
+
+The project's browser-check page says how every run in a real browser is done here: dev server and port, database rule, test accounts per role, routes per role, which paths count as UI paths, the check set, test data cleanup, the evidence folder and the axe baseline. The shared harness (pinned `playwright-core` + `axe-core`, no browser download) and the standard review script live outside the repo.
+- **Who follows it:** Douglas on every review and audit (his Gate: a UI task is not APPROVED without the Browser evidence block, unless the user waived it); Alice on every UI task; the ODST on every planned UI task that is not a quick fix, including medium tasks sent alongside Alice (2a).
+- **Who skips it:** the Marines and the ODST on a quick fix. Their Result says `Browser: NOT RUN (quick fix)`. Douglas still runs the browser himself when he reviews such a task.
+- **Douglas reports "browser setup missing"** (no page, or still the template): tell the user and offer: "Send Jerome on the browser setup? He creates BROWSER_CHECKS.md from the code and asks you the rest." On a yes, send `jerome` with mission "setup, browser part" (`sdd-setup` section 3b). Creating test accounts or writing to a database needs the user's explicit OK. Only the user can waive the browser step; quote their words in the next brief (`Waived:`).
+- **Open browser items:** before you send Douglas, list every open browser item from the task (unticked browser boxes, `Browser: NOT RUN (...)` lines, "to be tested in a browser" notes) in the brief's `Open browser items:` line.
+
 ## 3. Set the effort for each mission
 
 Pass `effort` when you send an agent. Use only **low**, **medium** or **high**:
@@ -118,6 +128,8 @@ Files / task: <task file path or the files in scope: paths only, never paste fil
 Depot: <"in project" | the Depot map lines from the session brief>
 Constraints: <rules that matter here>
 Browser: headless | visible (only if the user asked to watch)
+Open browser items: <list from the task (unticked browser boxes, "Browser: NOT RUN" lines), or none>
+Drop: <for the ODST only: quick fix | alongside Alice (medium task)>
 Independent review: yes | no   (yes for a feature of 3 or more tasks, or an audit's fixes; see sdd-review)
 Return: <what you need back>
 ```

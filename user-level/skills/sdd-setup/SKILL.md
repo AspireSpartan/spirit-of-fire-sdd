@@ -49,6 +49,17 @@ Policies are rules from outside the code: a company, a client contract, a regula
 - **Older project being moved in**: carry over every rule from the old `CLAUDE.md`/`.agents` into `RULES.md` (nothing silently dropped). If something does not fit, list it in the report.
 - **Do not edit `.claude/spirit-of-fire.json`.** Only the user changes the allowed branches. Put your proposed `allowedBranches` list in the report instead.
 
+## 3b. Browser checks page (`.agents/supply/BROWSER_CHECKS.md`)
+
+Every browser run (Douglas's reviews and audits, Alice's and the ODST's self-checks) follows this page. Do this part in the normal setup, and on its own when Cutter sends you on "setup, browser part" (Douglas reported "browser setup missing"). A project with no UI: say so in the report, and ask whether to write the page as "no UI paths" so the gate never applies.
+- **Create it from the template** (the depot already has it after the installer; otherwise copy `project-template/.agents/supply/BROWSER_CHECKS.md` from the installer folder, or write the same sections). Keep its section order: 1 Harness, 2 Dev server, 3 Database, 4 Accounts per role, 5 Routes per module and role, 6 Gate paths, 7 Check set, 8 Test data (+ 8b overlay setup), 9 Evidence, Axe baseline.
+- **Fill what the code shows**, with a source in brackets like RULES.md: the dev command and how it takes a port (`package.json` scripts, the framework's `--help`), the env var the auth library needs for a non-default port, the login route and its form selectors (the login page component: `name`, `type`, labels), the roles (the role enum or table, the access rules), the routes per role (page files and the access checks or nav items), the UI paths for section 6 (the folders that render screens and the client API helpers), and how the project proves it is on its local database.
+- **Write `TODO: ask the user`** for everything else: which test accounts to use and where their password lives, the default port to avoid, the test-data tag, the cleanup recipe, whether evidence is kept after archiving. Never invent an account or a password.
+- **Never without the user's explicit OK:** creating test accounts, seeding, or any other write to a database. The isolated-data rule in RULES.md applies: local or test database only.
+- **Harness:** read `HARNESS.md` in the harness folder (`%USERPROFILE%\.claude\tools\pw-harness\`, or the project's `.claude\tools\pw-harness\` for a project-only install). Copy its path into section 1, and run its **smoke command**; record the output (expected: `<playwright-core version> <axe-core version> ok`). Missing harness: write `TODO: run install.ps1 (browser checks)` and say so in the report.
+- **Axe baseline:** add an entry `<date> | browser | Known axe and layout baseline` to `DECISIONS.md` (empty list for now, "fill after the first full run"), so known items never live only in `NOTEBOOK.md`.
+- Point RULES.md "Commands" at the page (`Browser checks: .agents/supply/BROWSER_CHECKS.md`). Remove the page's `<!-- sof:template ... -->` marker line only when no `<...>` is left; `TODO: ask the user` lines may stay until the user answers (the session brief counts them).
+
 ## 4. Report for the user to review
 
 Return this to Cutter (he relays it and asks the questions as multiple choice):
@@ -61,6 +72,7 @@ UNSURE (need the user): <list>
 Suggested protected areas: <list with one-line reason each>
 Policies: <files already in .agents/policies/, evidence of rules found elsewhere, or "none found">
 Proposed allowedBranches for .claude/spirit-of-fire.json: [<...>]
+Browser checks: BROWSER_CHECKS.md <filled n sections / TODO n items>; harness smoke: <output, or "harness missing">
 Carried over from old instructions: <list>, or "none"
 
 Questions:
