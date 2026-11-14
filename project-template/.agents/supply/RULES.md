@@ -29,7 +29,7 @@ Change these only when a task file explicitly says so:
 - Backend format: `<command>`
 - Frontend lint: `<command>`
 - Frontend build: `<command>`
-- Browser tests: `<command>` (see `sdd-review` → Playwright)
+- Browser checks: `.agents/supply/BROWSER_CHECKS.md` (dev server, accounts, routes per role, check set, test data, evidence; the skills look for it here)
 
 ## Branches
 - <branch family and allowed push/merge targets; anything else: stop and ask>

@@ -60,6 +60,7 @@ export function resolveDepot(root) {
         memory: join(supplyDir, 'MEMORY.md'),
         decisions: join(supplyDir, 'DECISIONS.md'),
         notebook: join(supplyDir, 'NOTEBOOK.md'),
+        browserChecks: join(supplyDir, 'BROWSER_CHECKS.md'),
       },
       map: null,
     };
@@ -79,6 +80,7 @@ export function resolveDepot(root) {
       memory: join(base, 'MEMORY.md'),
       decisions: join(base, 'DECISIONS.md'),
       notebook: join(branchDir, 'NOTEBOOK.md'),
+      browserChecks: join(base, 'BROWSER_CHECKS.md'),
     },
     // Order matters: the first matching prefix wins (archive before the rest of tasks/).
     map: [
@@ -86,9 +88,11 @@ export function resolveDepot(root) {
       ['.agents/supply/MEMORY.md', join(base, 'MEMORY.md')],
       ['.agents/supply/DECISIONS.md', join(base, 'DECISIONS.md')],
       ['.agents/supply/NOTEBOOK.md', join(branchDir, 'NOTEBOOK.md')],
+      ['.agents/supply/BROWSER_CHECKS.md', join(base, 'BROWSER_CHECKS.md')],
       ['.agents/policies/', join(base, 'policies') + sep],
       ['.agents/research/', join(base, 'research') + sep],
       ['.agents/tasks/archive/', join(base, 'archive') + sep],
+      ['.agents/evidence/', join(branchDir, 'evidence') + sep],
       ['.agents/specs/', join(branchDir, 'specs') + sep],
       ['.agents/tasks/', join(branchDir, 'tasks') + sep],
     ],

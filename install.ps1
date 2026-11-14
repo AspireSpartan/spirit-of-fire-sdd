@@ -29,9 +29,13 @@
     Hooks      .claude\settings.json and .claude\hooks\ (session brief, branch guard, notebook reminder, depot map)
     Depot      the supply depot template (.agents\ or the global depot folder)
     GitIgnore  the .gitignore file and the lines the installer adds to it
+    Browser    browser checks: the pinned Playwright harness in %USERPROFILE%\.claude\tools\pw-harness
+               (-Scope Project: <project>\.claude\tools\pw-harness). Needs Node.js and npm; downloads
+               playwright-core and axe-core (exact versions) but never a browser.
   Interactive runs ask the same thing after the depot question: Enter installs everything,
-  or type the numbers of the parts to skip.
+  or type the numbers of the parts to skip. Then they ask "Install browser checks? (Y/N)".
     .\install.ps1 -Scope Global -Project "D:\path\to\project" -Skip Hooks,GitIgnore
+    .\install.ps1 -Scope Global -Project "D:\path\to\project" -Skip Browser      # no browser checks
 
   Default: copies files only and never overwrites. Anything that already exists is listed as
   SKIPPED so you can merge it by hand.
@@ -63,7 +67,7 @@ param(
   [ValidateSet('Project', 'ProjectIgnored', 'Global')]
   [string]$Depot,
   [string]$DepotName,
-  [ValidateSet('Agents', 'Skills', 'Commander', 'Hooks', 'Depot', 'GitIgnore')]
+  [ValidateSet('Agents', 'Skills', 'Commander', 'Hooks', 'Depot', 'GitIgnore', 'Browser')]
   [string[]]$Skip = @(),
   [switch]$Update
 )
@@ -241,6 +245,145 @@ function Read-ProjectPath([bool]$required) {
   }
 }
 
+# --- Browser checks (pinned Playwright harness) -----------------------------------
+
+# Newest cached Playwright build of one kind, e.g. chromium_headless_shell-1228 (or $null).
+function Get-CachedBuild([string]$root, [string]$prefix, [string]$exeRelative) {
+  if (-not $root -or -not (Test-Path $root)) { return $null }
+  $pattern = '^' + [regex]::Escape($prefix) + '-(\d+)$'
+  return Get-ChildItem -Path $root -Directory -ErrorAction SilentlyContinue |
+    Where-Object { $_.Name -match $pattern } |
+    ForEach-Object { [pscustomobject]@{ Build = [int]($_.Name -replace '^.*-', ''); Exe = (Join-Path $_.FullName $exeRelative) } } |
+    Where-Object { Test-Path $_.Exe } |
+    Sort-Object Build -Descending |
+    Select-Object -First 1
+}
+
+function Get-ModuleVersion([string]$harness, [string]$name) {
+  $pkg = Join-Path $harness "node_modules\$name\package.json"
+  if (Test-Path $pkg) { try { return (Read-Json $pkg).version } catch { } }
+  return ''
+}
+
+function Read-BrowserPath([string]$question) {
+  while ($true) {
+    $answer = (Read-Host $question).Trim().Trim('"')
+    if (-not $answer) { return '' }
+    if ((Test-Path $answer -PathType Leaf) -and $answer -like '*.exe') { return (Resolve-Path $answer).Path }
+    Write-Host "Not an .exe file: $answer" -ForegroundColor Yellow
+  }
+}
+
+# Installs or checks the harness; returns a one-line result for the final message.
+function Install-BrowserHarness([string]$harness) {
+  $ErrorActionPreference = 'Continue'   # npm and node write warnings to stderr; judge them by exit code
+  $source = Join-Path $here 'user-level\tools\pw-harness'
+  Write-Host "`n== Browser checks -> $harness" -ForegroundColor Cyan
+  $node = Get-Command node -ErrorAction SilentlyContinue
+  $npm = Get-Command npm.cmd -ErrorAction SilentlyContinue
+  if (-not $node -or -not $npm) {
+    Write-Host 'Node.js and npm are needed for browser checks and were not found. Install Node.js, then run the installer again.' -ForegroundColor Yellow
+    return 'not installed (Node.js or npm missing)'
+  }
+  Copy-One (Join-Path $source 'package.json') (Join-Path $harness 'package.json') $false
+  Copy-One (Join-Path $source 'smoke.cjs') (Join-Path $harness 'smoke.cjs') $false
+  $pinned = (Read-Json (Join-Path $harness 'package.json')).dependencies
+  $pwPinned = [string]$pinned.'playwright-core'
+  $axePinned = [string]$pinned.'axe-core'
+  if ($pwPinned -match '[\^~*]' -or $axePinned -match '[\^~*]') {
+    Write-Host "package.json in $harness has a version range (^ or ~). Browser checks need exact versions; fix it, then run again." -ForegroundColor Yellow
+    return 'not installed (version range in package.json)'
+  }
+
+  if ((Get-ModuleVersion $harness 'playwright-core') -eq $pwPinned -and (Get-ModuleVersion $harness 'axe-core') -eq $axePinned) {
+    Write-Host "same: playwright-core $pwPinned, axe-core $axePinned already installed" -ForegroundColor DarkGray
+  } else {
+    Write-Host "npm install (playwright-core $pwPinned, axe-core $axePinned; no browser download, no install scripts)..."
+    $oldSkip = $env:PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD
+    $env:PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = '1'
+    Push-Location $harness
+    try {
+      & $npm.Source install --save-exact --ignore-scripts --no-audit --no-fund | Out-Host
+      $npmOk = ($LASTEXITCODE -eq 0)
+    } finally {
+      Pop-Location
+      $env:PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = $oldSkip
+    }
+    if (-not $npmOk) {
+      Write-Host 'npm install failed (see above). Browser checks are not ready; run the installer again when the network is back.' -ForegroundColor Yellow
+      return 'not installed (npm install failed)'
+    }
+    Write-Host "added: playwright-core $pwPinned, axe-core $axePinned" -ForegroundColor Green
+  }
+
+  # The cached browser builds. The harness never downloads one: it reuses what Playwright already cached.
+  $browsersDir = if ($env:PLAYWRIGHT_BROWSERS_PATH -and $env:PLAYWRIGHT_BROWSERS_PATH -ne '0') { $env:PLAYWRIGHT_BROWSERS_PATH } else { Join-Path $env:LOCALAPPDATA 'ms-playwright' }
+  $expected = ''
+  try {
+    $manifest = Read-Json (Join-Path $harness 'node_modules\playwright-core\browsers.json')
+    $expected = [string](@($manifest.browsers | Where-Object { $_.name -eq 'chromium-headless-shell' })[0].revision)
+  } catch { }
+  $headless = Get-CachedBuild $browsersDir 'chromium_headless_shell' 'chrome-headless-shell-win64\chrome-headless-shell.exe'
+  $visible = Get-CachedBuild $browsersDir 'chromium' 'chrome-win64\chrome.exe'
+  $headlessExe = if ($headless) { $headless.Exe } else { '' }
+  $visibleExe = if ($visible) { $visible.Exe } else { '' }
+  $buildNote = "playwright-core $pwPinned expects build $expected; executablePath is always passed."
+
+  if (-not $headless) {
+    Write-Host "No cached headless Chromium found in $browsersDir." -ForegroundColor Yellow
+    Write-Host '  The harness never downloads a browser. A cached build appears once any Playwright project on this computer has installed Chromium.' -ForegroundColor Yellow
+    if ($interactive) { $headlessExe = Read-BrowserPath 'Full path to chrome-headless-shell.exe or chrome.exe (Enter = skip for now)' }
+    if (-not $headlessExe -and $visibleExe) { $headlessExe = $visibleExe; Write-Host "Using the visible Chromium in headless mode: $visibleExe" -ForegroundColor Yellow }
+    $buildNote = "No cached headless build was found at install time; $buildNote"
+  } elseif ($expected -and [string]$headless.Build -ne $expected) {
+    Write-Host "Cached headless build $($headless.Build) differs from build $expected that playwright-core $pwPinned expects." -ForegroundColor Yellow
+    Write-Host '  It usually works because executablePath is always passed; the smoke test below decides.' -ForegroundColor Yellow
+    if ($interactive -and (Read-Choice "Use cached build $($headless.Build)? (Y/N)" @('Y', 'N')) -eq 'N') {
+      $headlessExe = Read-BrowserPath 'Full path to another chrome-headless-shell.exe or chrome.exe (Enter = skip for now)'
+    }
+    $buildNote = "Cached build $($headless.Build); playwright-core $pwPinned expects build $expected, which is not cached, so always pass executablePath."
+  }
+  if (-not $visibleExe) { $visibleExe = $headlessExe }
+
+  Write-Json (Join-Path $harness 'harness.json') ([pscustomobject]@{
+    headless = $headlessExe; visible = $visibleExe; browsersDir = $browsersDir
+    playwrightCore = $pwPinned; axeCore = $axePinned; expectedBuild = $expected
+  })
+
+  $smokeCmd = "node `"$(Join-Path $harness 'smoke.cjs')`""
+  $harnessMd = Join-Path $harness 'HARNESS.md'
+  if (Test-Path $harnessMd) {
+    Write-Host "KEPT (yours): $harnessMd  (harness.json has the current browser paths)" -ForegroundColor Yellow
+  } else {
+    $text = [System.IO.File]::ReadAllText((Join-Path $source 'HARNESS.template.md'))
+    $values = @{
+      '{{HARNESS}}' = $harness; '{{SCOPE}}' = $(if ($Scope -eq 'Project') { 'project-only install, ignored by git' } else { 'outside every repo' })
+      '{{PW_VERSION}}' = $pwPinned; '{{AXE_VERSION}}' = $axePinned; '{{DATE}}' = (Get-Date -Format 'yyyy-MM-dd')
+      '{{BROWSERS_DIR}}' = $browsersDir; '{{HEADLESS}}' = $(if ($headlessExe) { $headlessExe } else { 'NOT FOUND: ask the user' })
+      '{{VISIBLE}}' = $(if ($visibleExe) { $visibleExe } else { 'NOT FOUND: ask the user' }); '{{BUILD_NOTE}}' = $buildNote; '{{SMOKE}}' = $smokeCmd
+    }
+    foreach ($k in $values.Keys) { $text = $text.Replace($k, [string]$values[$k]) }
+    $text = (($text -split "`r?`n") | Where-Object { $_ -notlike 'The installer writes this file*' }) -join "`r`n"
+    [System.IO.File]::WriteAllText($harnessMd, $text, $utf8)
+    Write-Host "added: $harnessMd" -ForegroundColor Green
+  }
+
+  if (-not $headlessExe) {
+    Write-Host 'Smoke test skipped: no browser. Douglas will report "harness missing" until harness.json has a browser path.' -ForegroundColor Yellow
+    return "installed, NO BROWSER (fill harness.json in $harness, then run: $smokeCmd)"
+  }
+  Write-Host "Smoke test: $smokeCmd"
+  $smoke = (& $node.Source (Join-Path $harness 'smoke.cjs') 2>&1 | Out-String).Trim()
+  $smokeOk = ($LASTEXITCODE -eq 0) -and ($smoke -eq "$pwPinned $axePinned ok")
+  if ($smokeOk) {
+    Write-Host "  $smoke" -ForegroundColor Green
+    return "ready ($smoke)"
+  }
+  Write-Host "  $smoke" -ForegroundColor Yellow
+  Write-Host "Smoke test did not print `"$pwPinned $axePinned ok`". Browser checks are not ready; see HARNESS.md." -ForegroundColor Yellow
+  return "installed, smoke test FAILED ($smokeCmd)"
+}
+
 function Get-PackageAgents { Get-ChildItem (Join-Path $here 'user-level\agents') -File -Filter *.md | ForEach-Object { $_.Name } }
 function Get-PackageSkills { Get-ChildItem (Join-Path $here 'user-level\skills') -Directory | ForEach-Object { $_.Name } }
 
@@ -374,6 +517,11 @@ if ($interactive) {
     Write-Host "Please type numbers from 1 to $($parts.Count), separated by commas, or press Enter." -ForegroundColor Yellow
   }
 }
+if ($interactive -and -not (Test-Skip 'Browser')) {
+  Write-Host "`nBrowser checks: a small pinned Playwright harness (playwright-core + axe-core, exact versions, no browser download)"
+  Write-Host 'that Douglas, Alice and the ODST use to test in a real browser. Needs Node.js and npm, and a Chromium that Playwright already cached.'
+  if ((Read-Choice 'Install browser checks? (Y/N)' @('Y', 'N')) -ne 'Y') { Add-Skip 'Browser' }
+}
 if (Test-Skip 'Depot') { $depotChosen = $false }
 
 $depotBase = ''
@@ -408,6 +556,8 @@ if ($Scope -eq 'Project') {
 }
 
 $copyAgents = $copyAgentsAndSkills -and -not (Test-Skip 'Agents')
+$harnessDir = if ($Scope -eq 'Project') { Join-Path $projectFull '.claude\tools\pw-harness' } else { Join-Path $userClaude 'tools\pw-harness' }
+$installBrowser = -not (Test-Skip 'Browser')
 $copySkills = $copyAgentsAndSkills -and -not (Test-Skip 'Skills')
 
 # Project template files that belong to each skippable part.
@@ -426,6 +576,8 @@ elseif ($copyAgentsAndSkills) { Write-Host 'Agents and skills:       skipped (yo
 else { Write-Host 'Agents and skills:       not installed this run (add -UserLevel for them)' }
 if ($skipSet.Count -gt 0) { Write-Host "Skipped parts:           $($skipSet -join ', ')" -ForegroundColor Yellow }
 if ($projectFull) { Write-Host "Project files go to:     $projectFull" } else { Write-Host 'Project files:           none (no project chosen)' }
+if ($installBrowser) { Write-Host "Browser checks:          $harnessDir$(if (Test-Path $harnessDir) { ' (exists: checked, updated only where it differs)' })" }
+else { Write-Host 'Browser checks:          skipped' }
 if ($projectFull -and (Test-Skip 'Depot')) {
   Write-Host "Supply depot:            skipped (nothing created; Cutter's orders still expect the $(Get-DepotLabel $Depot) layout)"
 } elseif ($projectFull) {
@@ -514,6 +666,16 @@ if ($interactive) {
 
 # --- Copy ----------------------------------------------------------------------
 
+# Agents that are new or changed this run: Claude Code loads agents only at start, so these need a restart.
+$agentsChanged = @()
+if ($copyAgents) {
+  foreach ($name in Get-PackageAgents) {
+    $target = Join-Path $agentsDir $name
+    $source = Join-Path $here "user-level\agents\$name"
+    if (-not (Test-Path $target)) { $agentsChanged += $name }
+    elseif ($Update -and (Get-FileHash $source).Hash -ne (Get-FileHash $target).Hash) { $agentsChanged += $name }
+  }
+}
 if ($copyAgents) {
   Write-Host "`n== Spartans and ODST -> $agentsDir" -ForegroundColor Cyan
   Copy-Tree (Join-Path $here 'user-level\agents') $agentsDir $false @()
@@ -558,6 +720,8 @@ if ($projectFull) {
   $ignoreLines = @()
   if ($Depot -eq 'Global') { $ignoreLines += '.claude/settings.local.json' }
   if ($Depot -eq 'ProjectIgnored') { $ignoreLines += '.agents/' }
+  if ($Depot -eq 'Project') { $ignoreLines += '.agents/evidence/' }
+  if ($installBrowser -and $Scope -eq 'Project') { $ignoreLines += '.claude/tools/' }
   $currentIgnore = if (Test-Path $gitignore) { [System.IO.File]::ReadAllLines($gitignore) } else { @() }
   $missing = @($ignoreLines | Where-Object { $currentIgnore -notcontains $_ })
   if ((Test-Skip 'GitIgnore') -or (Test-Skip 'Depot')) {
@@ -565,7 +729,7 @@ if ($projectFull) {
       Write-Host "GitIgnore skipped. Add these lines to your .gitignore yourself: $($missing -join ', ')" -ForegroundColor Yellow
     }
   } elseif ($missing.Count -gt 0) {
-    $add = "`r`n# Spirit of Fire depot`r`n" + ($missing -join "`r`n") + "`r`n"
+    $add = "`r`n# Spirit of Fire (depot, browser-check evidence, harness)`r`n" + ($missing -join "`r`n") + "`r`n"
     [System.IO.File]::AppendAllText($gitignore, $add, $utf8)
     Write-Host "added to .gitignore: $($missing -join ', ')" -ForegroundColor Green
   }
@@ -624,7 +788,17 @@ if ($projectFull) {
   }
 }
 
+$browserResult = 'skipped'
+if ($installBrowser) { $browserResult = Install-BrowserHarness $harnessDir }
+
 Write-Host "`nDone ($scopeName). Restart Claude Code so it picks up new agents, skills and hooks." -ForegroundColor Cyan
+if ($agentsChanged.Count -gt 0) {
+  Write-Host "RESTART CLAUDE CODE NOW: new or changed agents ($($agentsChanged -join ', ')) are not loaded until you do. Until then Cutter cannot send them (for example a missing odst: he would have to send Alice)." -ForegroundColor Yellow
+}
+Write-Host "Browser checks: $browserResult" -ForegroundColor Cyan
+if ($installBrowser -and $projectFull -and -not (Test-Skip 'Depot')) {
+  Write-Host 'Next for browser checks: ask Cutter for the setup mission (browser part). Jerome fills .agents\supply\BROWSER_CHECKS.md from the code and asks you the rest.' -ForegroundColor Cyan
+}
 if ($Scope -eq 'Project' -and ($copyAgents -or $copySkills)) {
   Write-Host 'The agents and skills are in the project''s .claude folder: commit them with the project, and run the installer again for each project you want Spirit of Fire in.' -ForegroundColor Cyan
 }

@@ -1,42 +1,32 @@
 # Playwright for reviews
 
-## Find the project's setup first
-- Look for `playwright.config.*` (often in the frontend folder) and an `e2e/` or `tests/` folder. Reuse existing helpers, login fixtures and seed data; do not invent a parallel setup.
-- RULES.md or a `TESTING.md` may say which database/ports e2e uses and whether runs can overlap. Respect it; two Playwright runs on the same ports usually collide.
+## 1. Find the project's browser-check page first
+RULES.md "Commands" names it (for example `.agents/supply/BROWSER_CHECKS.md`). **If it exists, follow it and the standard script, full stop:** `references/review-script.md` and `references/review-script.template.cjs`. Do not invent another harness, and do not write specs, probes or screenshots into the repo (`e2e/`, `test-results/`). The page decides the dev server, the database rule, the accounts, the routes and the evidence folder.
 
-## Headless (default)
+## 2. Fallback: a project with a real Playwright suite
+Only when there is no browser-check page but there is a `playwright.config.*` and an `e2e/` or `tests/` folder: reuse its helpers, login fixtures and seed data; RULES.md or a `TESTING.md` may say which database and ports e2e uses. Two runs on the same ports collide.
 ```bash
-npx playwright test e2e/<spec>.spec.js --reporter=line
+npx playwright test e2e/<spec>.spec.js --reporter=line               # headless (default)
+npx playwright test e2e/<spec>.spec.js --headed --workers=1 --reporter=line   # visible, only when the mission says so
 ```
+- Name a review test after the behavior (`e2e/review-<feature>.spec.js`), test what the user would do, and run it 3 times if it touches timing.
+- A temporary config (for example `playwright.review.config.js`, `slowMo: 300` for a person to follow) is deleted after the review; say so in the report.
+- Screenshots for findings: cite their path.
 
-## Visible, when the user wants to watch
-Only when the mission says so ("visible", "headed", "show me", "I want to see it").
-```bash
-npx playwright test e2e/<spec>.spec.js --headed --workers=1 --reporter=line
-```
-- `--workers=1` keeps one browser window so the user can follow it.
-- To slow it down for a person: in the config or a temporary review config, set `use: { launchOptions: { slowMo: 300 } }`.
-- If you create a temporary config (for example `playwright.review.config.js`), delete it after the review and say so in the report.
+## 3. Probes for audits
+Write the throwaway probe in the session scratchpad, starting from `review-script.template.cjs` plus your probe lines (task-specific section), on the project's isolated test environment only. Print one line per probe so the evidence is easy to copy into the findings spec. Mix API probes (exact statuses and bodies, parallel requests) with the real form (what the person sees, then reload). Screenshots go to the project's evidence folder. Delete the probe afterwards and confirm with `git status`.
 
-## Writing a review test
-- Name it after the behavior: `e2e/review-<feature>.spec.js`.
-- Test what the user would do: log in as the right role, click through, assert visible text or state, not implementation details.
-- Run it 3 times when it touches timing (uploads, emails, background jobs); a test that passes once is not proof.
-- Save screenshots for findings: `await page.screenshot({ path: 'test-results/<finding>.png' })` and cite the path.
+## 4. Visible mode
+Only when the mission says so ("visible", "headed", "show me", "I want to see it"): run the script with `--headed` (the template slows actions down). Otherwise headless.
 
-## Throwaway probes (audits)
-- Name it `e2e/_probe-<module>.spec.js`. Use the project's isolated e2e database and seeded accounts only; never dev, staging, UAT or production data.
-- Print one line per probe (`console.log('PROBE A1 ...: ' + JSON.stringify(...))`) and run with `--reporter=line`, so the evidence is easy to copy into the findings spec.
-- Mix API probes (exact statuses and bodies, parallel requests with `Promise.all`) with the real form (what the person actually sees, then `page.reload()`), and take screenshots of messages.
-- Delete the probe and its `test-results` leftovers when done; confirm with `git status`.
+## 5. Flaky or surprising failures
+- Rerun the single check once. If it passes, report **"suspected flake: failed once, passed on rerun"** with both results and the step that failed; do not hide it and do not call the feature broken.
+- If it fails the same way twice, it is real: find the cause before blaming the change. Check whether it also happens without the change (run a related check; `git stash` is risky on a busy tree).
+- A check that fails because it was written for the old behavior (a changed message, a removed button) is a **script to update**, not a bug; say which one it is.
 
-## Flaky or surprising failures
-- Rerun the single spec once. If it passes, report **"suspected flake: failed once, passed on rerun"** with both results and the step that failed; do not hide it and do not call the feature broken.
-- If it fails the same way twice, it is real: find the cause before blaming the change. Check whether the failure also happens without the change (git stash is risky on a busy tree; run the related spec instead, or compare with the other branch's last result).
-- A spec that fails because it was written for the old behavior (a changed flash message, a removed button, a longer timeline) is a **spec to update**, not a bug; say which one it is.
-
-## Watching a whole tour (demo)
+## 6. Watching a whole tour (demo)
 To walk the user through the app in one visible window, switching roles, see `references/demo-tour.md`.
 
-## Leave things clean
-Remove files the test created (uploads, records) if the project has a cleanup step; check its log line.
+## 7. Leave things clean
+- Delete the records the run created **by id** (never by a time window or a broad pattern); record the ids and the before/after counts in the task file. If the project defines a cleanup step (RULES.md or the browser-check page), run it and check its log line.
+- Stop the dev server you started, and nothing else. Delete scratchpad scripts and probes; confirm with `git status` that the repo has no new file from the run.

@@ -1,6 +1,8 @@
 # Demo tour: the whole app in one visible window
 
-Use when the user says "demo the whole app", "walk me through it", "show me all roles in one window". It is **not a regression test**; it is a guided, watchable run. It uses the project's **isolated e2e database**, never real data.
+If the project has a browser-check page (RULES.md "Commands"), drive the tour with the harness and rules from it instead of `npx playwright test` and `e2e/` below; the steps and captions still apply.
+
+Use when the user says "demo the whole app", "walk me through it", "show me all roles in one window". It is **not a regression test**; it is a guided, watchable run. It uses the project's **isolated test environment**, never real data.
 
 ## Shape
 - **One browser window, one page.** Between roles the script **signs out and signs in again through the real login form** (Profile menu → Logout → login form), so the user can follow who is acting.

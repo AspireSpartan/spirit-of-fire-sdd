@@ -28,9 +28,11 @@ Anything from RULES.md, DECISIONS.md or policies that matters here.
 - [ ] **Reproduced first** (bugs): the failing test was written before the fix and its failure recorded in Result.
 - [ ] **Mutation check recorded:** undo the fix, a test fails, restore it (`diff` identical).
 - [ ] Formatter and linter pass on touched files.
+- [ ] **Browser check** (UI tasks): standard review script run per the project's browser-check page on <routes> for <roles>; summary in Result, evidence in the evidence folder; 0 NEW axe, 0 console errors, no sideways scroll, Tab-out-of-Modal pass on <overlays> (or each failure listed as a finding).
 
 ## Notes for Coder
 Gotchas. Existing code to copy the style of. What not to touch.
+UI task: name the routes, roles and overlays the browser check must cover. If the Coder cannot run the browser check, Result says exactly `Browser: NOT RUN (<reason>)` and the box stays open.
 
 ## Result
 (Coder fills in, at most about 40 lines: commands and counts, the failing-first run, one line per mutation check, what was verified, what was not and why. Long evidence goes in `.agents/tasks/evidence/TASK-N.md`.)

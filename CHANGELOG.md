@@ -1,5 +1,57 @@
 # Changelog
 
+## v0.5: browser checks that ship, 2026-11-14
+
+v0.4.1 said Douglas reviews "in a browser (Playwright)" but shipped nothing to make that work: `playwright.md` assumed a `playwright.config` and an `e2e/` folder most projects do not have, `RULES.md` had one line for it, and there was no shared Playwright install. A real project (Next.js, Windows) running v0.4.1 built the missing pieces by hand on 2026-11-13 and 14. v0.5 generalizes them and ships them, so a fresh install has them and `-Update` no longer rolls them back.
+
+### New
+- **Browser-check page** `.agents/supply/BROWSER_CHECKS.md` (project template): 1 Harness, 2 Dev server for a run, 3 Database, 4 Accounts per role, 5 Routes per module and role, 6 Gate paths, 7 Check set, 8 Test data (+ 8b overlay setup example), 9 Evidence, Axe baseline. Every project value is a `<...>` placeholder. `RULES.md` "Commands" now says `Browser checks: .agents/supply/BROWSER_CHECKS.md`.
+- **Shared harness** `user-level/tools/pw-harness/`: `package.json` with exact pins (`playwright-core` 1.65.0, `axe-core` 4.14.0), `smoke.cjs`, and a `HARNESS.md` template. No browser is downloaded: it reuses the Playwright cache and always passes `executablePath`.
+- **Installer part `Browser`**: a normal install asks **"Install browser checks? (Y/N)"**; `-Skip Browser` skips it without questions. On Y it runs `npm install --save-exact --ignore-scripts` with `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1`, finds the cached Chromium in `%LOCALAPPDATA%\ms-playwright` (or `PLAYWRIGHT_BROWSERS_PATH`), asks when it is missing or a different build, writes `harness.json` and `HARNESS.md`, and runs the smoke test. No user name or path is hardcoded. `-Scope Project` puts the harness in `<project>\.claude\tools\pw-harness\` and adds `.claude/tools/` to `.gitignore`.
+- **Standard review script** `sdd-review/references/review-script.template.cjs` and `review-script.md`: login per role, route x viewport matrix (360, 390, 1280, 200% zoom), sideways scroll, axe against a baseline, console errors, a 40-stop keyboard walk, Tab-out (rapid and settled), Escape and focus return for each dialog, evidence files and `PASS|FAIL|INFO` lines with a `SUMMARY`. Keeps the features the real project needed: `ready` and `readyRoles` per route, a warm-up for cold dev servers (`WARMUP_MS`), a `setup` hook per overlay, visible-only dialog lookups, no `networkidle`, short waits, a task-specific section. It reads the browser paths from `harness.json`.
+- **Open browser items force a browser run** (`sdd-review` step 3): any unticked browser box, `Browser: NOT RUN (<reason>)` line or "to be tested in a browser" note is run through the page, even when the diff touches no UI path, or listed under Not verified with the reason.
+- **Fixed marker** `Browser: NOT RUN (<reason>)`: the Coder writes it whenever a UI task was not run in a browser (`sdd-code`, task template); Douglas searches for it first.
+- **"Browser setup missing"**: with no page (or only the template), Douglas stops the browser step and reports it; Cutter offers the setup step (Jerome, `sdd-setup` section 3b). Only a user waiver skips it.
+- **Session brief** warns when `BROWSER_CHECKS.md` is missing, still the template, or has open `TODO: ask the user` items (only once `RULES.md` is filled in).
+- **`CPT_CUTTER.md` section 2d "Browser checks"**: who follows the page (Douglas always; Alice on UI tasks; the ODST on planned tasks, including medium tasks sent alongside Alice) and who skips it (the Marines and the ODST on a quick fix). The brief template gets `Open browser items:` and `Drop:` lines. Section 2a gets the **parallel drop** (only on the user's order: Alice on the high task, the ODST on the medium tasks at the same time) and the **ODST quick fix**.
+- **Restart reminder:** when the installer adds or changes an agent, its last message says to restart Claude Code now and names the agents, because Cutter cannot send an agent Claude Code has not loaded.
+- Global depot map: `.agents/supply/BROWSER_CHECKS.md` (shared) and `.agents/evidence/` (per branch).
+
+### Changed (ported from the live project)
+- **`sdd-review`**: step 3 Browser is required for any task touching the page's UI paths and points to `references/review-script.md`, headless unless the mission says watch; step 7 Test data cleanup checks before/after counts and deleted ids; new **Browser evidence** block in the verdict; new **Gate**: a UI task cannot be APPROVED without that block unless the brief quotes the user waiving it ("browser evidence missing" is CHANGES REQUESTED).
+- **`sdd-review/references/playwright.md`** rewritten: the project's page and the standard script first; the old `playwright.config` + `e2e/` flow is a fallback; probes live in the scratchpad; `--headed` for visible mode; flaky-failure rule; "Leave things clean" (delete by id, never by time window; stop only your own dev server; `git status` clean).
+- **`demo-tour.md`**: uses the page's harness when there is one; "isolated test environment" instead of "isolated e2e database".
+- **`sdd-code`**: a user-facing change runs the standard script as a self-check before hand-off; who owes the browser check; the fixed marker.
+- **`sdd-audit`**: probes start from the review-script template, run from the scratchpad, follow the page; evidence paths (screenshots, `run.log`) in findings.
+- **`sdd-plan/templates/task.md`**: acceptance box "Browser check (UI tasks)", "name the routes, roles and overlays the browser check must cover", and the marker.
+- **`sdd-setup`** section 3b: creates the page from the template, fills what the code shows, marks the rest `TODO: ask the user`, asks before creating accounts or writing to a database, adds the axe baseline entry to `DECISIONS.md`, ends with the harness smoke result.
+- **Agents `alice`, `jerome`, `douglas`**: new step "Load these skills when the work matches" (`verification-before-completion` before any "done"; `differential-review` and `security-best-practices` for protected areas; the project's database and ORM skills; `receiving-code-review` for Alice's fix rounds; `frontend-design` for NEW screens; `RULES.md` and `DECISIONS.md` always win). Database and deploy lines are written for any stack (the live copies named Prisma, Supabase and Vercel). Douglas reports "browser setup missing"; Jerome names routes, roles and overlays for UI tasks; Alice writes the marker.
+- **`odst`** and **`sdd-marine`**: when the browser rule applies to them and when it does not.
+- `.gitignore` template: `.agents/evidence/`.
+- `README.md`: new section "Browser checks".
+
+### Not shipped, on purpose
+- **No third-party Playwright skill.** Anders vetted six on 2026-11-13 and recommended none (see README "Browser checks"). The vetting rule is unchanged.
+- **Windows PowerShell only.** macOS and Linux are out of scope.
+
+### Changed files
+New: `project-template/.agents/supply/BROWSER_CHECKS.md`, `user-level/tools/pw-harness/` (`package.json`, `smoke.cjs`, `HARNESS.template.md`), `sdd-review/references/review-script.md`, `review-script.template.cjs`. Changed: agents `alice`, `jerome`, `douglas`, `odst`; skills `sdd-review` (+ `playwright.md`, `demo-tour.md`), `sdd-code`, `sdd-audit`, `sdd-plan` (task template), `sdd-setup`, `sdd-marine`; `.claude/CPT_CUTTER.md`, `.claude/hooks/session-brief.mjs`, `.claude/hooks/depot.mjs`, the `RULES.md` and `.gitignore` templates, `install.ps1`, `README.md`.
+
+### Release check (for whoever builds the package)
+The review script and its guide must stay project-neutral. Before a release, this must print nothing (add the names of the projects the framework was tried on):
+```powershell
+Select-String -Path user-level\skills\sdd-review\references\review-script.*, project-template\.agents\supply\BROWSER_CHECKS.md -Pattern '<project name>', '<test account prefix>', 'C:\\Users\\<name>'
+```
+v0.5 passed it for the project it came from.
+
+### Upgrading from v0.4.1
+1. **If you patched framework files yourself** (agents, skills, `CPT_CUTTER.md`, hooks), note that `-Update` replaces every framework file that differs and keeps the old copy as `<name>.bak-<date-time>`. After the update, **diff each `.bak` copy against the new file** and carry over anything of yours that v0.5 does not already have. (v0.4.1's own `-Update` would have undone the browser-check patches; v0.5 ships them.)
+2. Run the installer with `-Update` and the same choices you installed with, for example `.\install.ps1 -Scope Global -Project "<path>" -Update`. Answer **Y** to "Install browser checks?" (or pass `-Skip Browser` to leave them out).
+3. `BROWSER_CHECKS.md` is added to the depot only when it is missing; your `RULES.md` is never replaced, so change its browser line under "Commands" to `Browser checks: .agents/supply/BROWSER_CHECKS.md` (or ask Cutter to compare `RULES.md` with the template).
+4. If you already built a harness by hand in `%USERPROFILE%\.claude\tools\pw-harness\`, the installer keeps your `HARNESS.md`, replaces `package.json` only if it differs (with a `.bak`), and writes `harness.json` with the browser it finds. If your old project-specific review script lives elsewhere, the new template replaces it; keep project facts in `BROWSER_CHECKS.md`.
+5. Ask Cutter for the setup mission, browser part, to fill `BROWSER_CHECKS.md` (or check yours against the template's sections). Move known axe items into `DECISIONS.md` if they only live in `NOTEBOOK.md`.
+6. **Restart Claude Code** so it loads the changed agents and skills.
+
 ## v0.4.1: the ODST, a cheaper Coder for low and medium tasks, 2026-11-13
 
 Most planned tasks are low or medium effort, and until now every one of them was built by Alice on Sonnet. v0.4.1 adds a second Coder on a cheaper model for those, and keeps Alice for the risky work. The proof rules and Douglas's review are unchanged.

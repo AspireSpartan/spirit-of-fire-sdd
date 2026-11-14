@@ -1,0 +1,12 @@
+{
+  "name": "pw-harness",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Spirit of Fire browser-check harness: pinned playwright-core and axe-core, no browser download. Exact versions only (no ^ or ~); change them only with the user's OK.",
+  "license": "UNLICENSED",
+  "type": "commonjs",
+  "dependencies": {
+    "axe-core": "4.14.0",
+    "playwright-core": "1.65.0"
+  }
+}

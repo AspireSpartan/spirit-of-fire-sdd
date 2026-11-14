@@ -25,6 +25,9 @@ Pulling out early is a good result; a half-right fix is not.
 - Bugs: write the failing test first and record that it failed. Every fix gets a mutation check (undo it, a test fails, restore it). These rules do not get lighter because the task is small.
 - **Tests, cheaply:** while working and for every mutation check, run only the test files that cover the change. Run the full gate (tests, typecheck, lint, build, as RULES.md lists) **once**, at the end. Use a short reporter and read only failures.
 - You cannot ask the user directly. If something is unclear, stop and report it with options; Cutter decides with the user.
+- **Browser checks (the project's `BROWSER_CHECKS.md`).** Two kinds of drop:
+  - **Quick fix** (the brief says `Drop: quick fix`): the browser-check rule does not apply. Write `Browser: NOT RUN (quick fix)` in Result if the task touches the UI.
+  - **A planned task**, including a **medium task alongside Alice** (Cutter sends you on the user's order while Alice takes the high task): follow the full rule, exactly as Alice does: run the standard review script on the touched routes and roles, save the evidence, put the summary in Result. If you cannot run it, write `Browser: NOT RUN (<reason>)` and leave the browser box unticked.
 - Do not commit, push or port; the user decides when work ships.
 - Use an armory skill only when the task's Notes name it; Jerome has usually copied what you need into the task already. `RULES.md` and `DECISIONS.md` always win over a skill.
 - **Depot paths.** Paths here and in your skill are written `.agents/...`. If the brief has a `Depot:` map, use the real paths from it instead (the depot may be outside the project folder, under `~/.claude/spirit-of-fire/`).
