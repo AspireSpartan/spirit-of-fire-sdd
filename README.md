@@ -2,6 +2,8 @@
 
 **Edition: general.** The policies folder starts empty and Jerome asks about your rules at setup. A company edition with a Git connectivity policy is a separate package.
 
+> **Use it:** click **Use this template** to start your own copy. **Contribute:** fork this repo and open a pull request (see `CONTRIBUTING.md`). Older versions are on the Releases page.
+
 A reusable **spec-driven development (SDD)** setup for Claude Code, for any full-stack project. It is built around the crew of the *Spirit of Fire* from Halo Wars:
 
 | In the game | In this setup | What it does | Model |
