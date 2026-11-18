@@ -28,6 +28,13 @@ Readers of anything this changes (status, field, setting, rule) and what each ne
 |---|---|
 | <file, page, template, email, tracker> | <...> |
 
+## Test plan
+One row per area this changes. Pick the **lowest level that proves it**: unit for logic, integration for the API and database, browser only for the user flows that matter (the browser check covers the rest). Cover the critical path, error handling, edge cases, the role and permission boundaries and data integrity; skip trivial getters, framework code and one-off scripts.
+| Area | Level (unit / integration / browser) | Cases that must be tested |
+|---|---|---|
+| <service, endpoint, page> | <level> | <happy path; empty or null; error; wrong role; ...> |
+Gaps in existing tests this work depends on: <list, or "none">
+
 ## Acceptance (high level)
 - <behavior a user or a test can confirm, checked where it lands: the other role's page, the row, the email>
 
