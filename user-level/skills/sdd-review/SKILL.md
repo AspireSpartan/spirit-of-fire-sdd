@@ -30,7 +30,7 @@ The brief says `Independent review: yes | no`. It is **yes** for a feature of 3 
    - **Security:** injection (SQL, command, path traversal), XSS, CSRF, SSRF, missing auth or role check, secrets in code, unsafe deserialization.
    - **Performance:** N+1 queries, unbounded queries or loops (no limit or pagination), a missing index for a new filter, O(n²) work on a hot path, leaked connections, handles or listeners.
    - **Correctness:** empty, null, zero, too long, duplicate; off-by-one; errors swallowed or passed on wrong; races between two requests; type mismatches at the API boundary.
-   - **Maintainability:** unclear names, copy-paste of an existing helper, a non-obvious rule with no comment.
+   - **Maintainability:** unclear names, copy-paste of an existing helper, a non-obvious rule with no comment, code the task did not ask for (an unused option, a wrapper, a new package where the project already has one; `sdd-code` "Smallest complete change").
 7. **Test data cleanup.** If the project defines one (RULES.md), confirm it ran and check its log line. Confirm the before/after counts and the deleted ids are in the task file.
 8. **Flakes.** A failure you cannot reproduce on rerun is reported as a *suspected flake* with both results; do not wave it through, and do not block on it without a rerun.
 
