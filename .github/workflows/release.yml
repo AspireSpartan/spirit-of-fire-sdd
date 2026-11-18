@@ -1,0 +1,52 @@
+# Publishes one GitHub release: tag, notes from CHANGELOG.md, and the general-edition zip.
+# Run it from Actions > "Publish release" > Run workflow.
+# The zip is built only from files in this public repo, so a company edition can never end up here.
+name: Publish release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to publish, e.g. v0.5.3 (must have a '## v0.5.3:' section in CHANGELOG.md)"
+        required: true
+      ref:
+        description: "Commit or branch to tag (default: main)"
+        required: false
+        default: main
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build notes and zip
+        env:
+          VERSION: ${{ inputs.version }}
+          REF: ${{ inputs.ref }}
+        run: |
+          set -euo pipefail
+          [[ "$VERSION" =~ ^v[0-9]+(\.[0-9]+)*$ ]] || { echo "Version must look like v0.5.3"; exit 1; }
+          SHA=$(git rev-parse --verify "origin/$REF^{commit}" 2>/dev/null || git rev-parse --verify "$REF^{commit}")
+          echo "SHA=$SHA" >> "$GITHUB_ENV"
+          # Notes: the CHANGELOG section for this version, without its heading.
+          git show "$SHA:CHANGELOG.md" | awk -v v="## $VERSION:" '
+            index($0, v) == 1 { on = 1; next }
+            on && /^## / { exit }
+            on { print }' > notes.md
+          [ -s notes.md ] || { echo "No '## $VERSION:' section in CHANGELOG.md at $SHA"; exit 1; }
+          # Zip: the repo at that commit, in a spirit-of-fire-sdd-<version>/ folder, without .github/.
+          git archive --format=zip --prefix="spirit-of-fire-sdd-$VERSION/" -o "spirit-of-fire-sdd-$VERSION.zip" "$SHA" -- . ':(exclude).github'
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          gh release create "$VERSION" "spirit-of-fire-sdd-$VERSION.zip" \
+            --target "$SHA" --title "Spirit of Fire SDD $VERSION" --notes-file notes.md
