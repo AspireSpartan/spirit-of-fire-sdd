@@ -9,7 +9,7 @@
 2. <rule>
 
 ## What this means for agents
-- <concrete do and don't, e.g. "Never set origin to an SSH URL on port 22", "Never paste production data into a prompt or an external tool">
+- <concrete do and don't, e.g. "Never push directly to main", "Never paste production data into a prompt or an external tool">
 - <what to do when a task would break it: stop and tell Cutter, who asks the user>
 
 ## Exceptions

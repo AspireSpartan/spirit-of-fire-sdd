@@ -175,7 +175,7 @@ Specs, tasks and memory no longer have to be committed with the code.
 A real project run on v0.2 (about 18 reviewed tasks plus a production release in 1.5 days) used around 40% of the account's usage. Most of it was agents re-reading the same files: by the end, the depot every agent read at start had grown to about 7,400 words, the biggest spec plus plan to about 7,850, and the full test suite ran for every mutation check. v0.3 cuts the reading and the repeated runs. Reproduce-first, mutation checks, ripple checks, independent review, gated hand-offs and "ship only on the user's word" are unchanged.
 
 ### New
-- **Two editions.** *General*: `.agents/policies/` starts empty; the setup mission asks about company, client or personal rules and writes policy files from `sdd-setup/templates/policy.md`, never from a guess. *Company*: the same, plus the GitHub connectivity policy (HTTPS on 443, no SSH on port 22).
+- **Two editions.** *General*: `.agents/policies/` starts empty; the setup mission asks about company, client or personal rules and writes policy files from `sdd-setup/templates/policy.md`, never from a guess. *Company*: the same, plus a company policy, shipped as a separate private package.
 - **Professor Anders** (`anders` agent, Sonnet, medium): researcher and skill vetter. Read-only, with a `tools:` list and no shell, so a hostile skill she reads cannot make her run anything. Writes one report under `.agents/research/`.
 - **`find-skills`** (Anders only): a search-only copy of vercel-labs/skills `find-skills` (MIT), using WebFetch instead of `npx`.
 - **Context block** in every task (`sdd-plan/templates/task.md`): the 10 to 20 spec and plan lines the task needs, so Alice does not read the whole spec.
