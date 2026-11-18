@@ -15,9 +15,9 @@ Every project keeps its shared state in `.agents/`:
 | File | Why you read it |
 |---|---|
 | `.agents/supply/RULES.md` | Fixed stack, conventions, branch rules. Your plan must not break them. |
-| `.agents/supply/MEMORY.md` | Current state and the `Highest TASK number` line (the next task is that number + 1). |
+| `.agents/supply/MEMORY.md` | Current state, the `Highest TASK number` line (the next task is that number + 1) and `Last IDs`. Older lines live in `memory-archive/`: use the **Archive index**, then search that file for the ID or `|area|`; never read an archive whole. |
 | `.agents/supply/NOTEBOOK.md` | What happened last session and what is unfinished. |
-| `.agents/supply/DECISIONS.md` | What the user decided to leave as it is. Search it for the area you plan; never plan a "fix" for something listed there without asking. |
+| `.agents/supply/DECISIONS.md` | What the user decided to leave as it is. Search its **Index** for the area you plan and open only the entries you need by ID; never plan a "fix" for something listed there without asking. |
 | `.agents/policies/*.md` | Policies that bind every role (company, client or the user's own rules), if any. |
 | `.agents/specs/`, `.agents/tasks/` | Only when the request continues existing work, or **when an audit left findings** (`.agents/specs/<module>-review/spec.md`): then that spec is your input. Otherwise start clean so old scope does not leak in. |
 
@@ -62,7 +62,7 @@ Every task lists its **Tests to write** (its rows from the test plan: level and 
 
 ## 6. Update memory and report
 
-Update `Highest TASK number` and add one line for the feature under **Open work** in `MEMORY.md` (respect its word cap; see the rules there). Then report to Cutter in at most about 15 lines: files written, open questions, **the business choices you made as defaults** (so the user can confirm them), task list with suggested effort. End your report with **"Done planning."** In gated mode Cutter now stops and waits for the user's go before the Coder starts.
+Update `Highest TASK number` and add one labeled line for the feature under **Open work** in `MEMORY.md` (`[M-n|area|TASK-a..b]`, next ID from `Last IDs`; respect its word cap and the 700-word ask, see the rules there). Then report to Cutter in at most about 15 lines: files written, open questions, **the business choices you made as defaults** (so the user can confirm them), task list with suggested effort. End your report with **"Done planning."** In gated mode Cutter now stops and waits for the user's go before the Coder starts.
 
 ## What not to do
 - Do not write application code, config or tests. If you catch yourself editing `src/` or `app/`, stop.

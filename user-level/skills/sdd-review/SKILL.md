@@ -14,7 +14,7 @@ The brief says `Independent review: yes | no`. It is **yes** for a feature of 3 
 - **Normal:** you may read the Result section first to know where to look, but still re-run everything.
 
 ## 1. Read
-- `.agents/supply/RULES.md`, `.agents/supply/MEMORY.md`, `.agents/policies/*.md` (older projects: `.agents/skills/`). Search `.agents/supply/DECISIONS.md` for the area: something listed there is a deliberate choice, not a finding.
+- `.agents/supply/RULES.md`, `.agents/supply/MEMORY.md`, `.agents/policies/*.md` (older projects: `.agents/skills/`). Search the **Index** of `.agents/supply/DECISIONS.md` for the area and open only the entries you need by ID (never the whole file): something listed there is a deliberate choice, not a finding.
 - The task file (in `.agents/tasks/requires-review/`) and its **Context** block. **Normal review:** open only the spec and plan sections the Context names. **Independent review:** read the spec and plan in full (and the audit spec if one exists).
 - The diff: `git diff` or `git show` for the task's commits, **including untracked files** (`git status`). Read every changed line in protected areas.
 
@@ -65,11 +65,11 @@ Looks good: <one line on what is solid, so the user knows what not to worry abou
 
 Severity: **High** (breaks the behavior, data or security), **Medium** (a real gap with a rare trigger), **Low** (polish, hardening, wording). Low findings do not block APPROVED, but they are listed and either fixed or left to the user.
 
-- **APPROVED:** move the task file to `.agents/tasks/archive/<feature>/`, update its line in `MEMORY.md` to "APPROVED". When the whole feature is approved, replace its task lines with one line under **Finished**.
+- **APPROVED:** move the task file to `.agents/tasks/archive/<feature>/`, update its line in `MEMORY.md` to "APPROVED". When the whole feature is approved, replace its task lines with one labeled line under **Finished** (`[M-n|area|TASK-a..b]`, next ID from `Last IDs`). At 700 words or more, trim or move nothing; report `MEMORY.md at <n>/800 words`.
 - **CHANGES REQUESTED:** leave it in `requires-review/` and report the findings to Cutter. Alice fixes (failing test first; review fixes always go to Alice, even when `Built by: ODST`) and you re-verify only what changed, plus a regression run.
 
 ## 4. Close
-- Anything the user decides to **leave as it is** goes into `.agents/supply/DECISIONS.md` (no line cap) with how to apply it; Cutter asks the user, you do not decide.
+- Anything the user decides to **leave as it is** goes into `.agents/supply/DECISIONS.md` (no cap; next `D-n`, one Index line, `Related:` IDs) with how to apply it; Cutter asks the user, you do not decide.
 - If a Low finding is fixed after the review, say so in the task file ("Review result") so the record shows verdict, fix and re-run.
 
 Report to Cutter in **at most about 15 lines**: verdict, findings (ID, severity, one line each), what was not verified, where the task file now lives. The full evidence stays in the task file. End with the verdict. Commit, push and porting wait for the user's word.

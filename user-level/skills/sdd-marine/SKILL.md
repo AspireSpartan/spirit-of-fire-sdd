@@ -14,14 +14,14 @@ All of these must hold; if one does not, stop and tell Cutter it needs the Spart
 - No protected area from RULES.md (for example auth, payments, legal documents).
 - The user's intent is clear (no business rule to decide).
 - It does not change shared state that other code reads (a status, field name, settings key, uniqueness rule). If it does, list the readers first (ripple check); if the list is long, it needs the Spartans.
-- It is not listed in `.agents/supply/DECISIONS.md` as something the user chose to leave alone.
+- It is not listed in the **Index** of `.agents/supply/DECISIONS.md` as something the user chose to leave alone (search the Index for the area; do not read the whole file).
 
 ## Steps
 1. **Read** `.agents/supply/RULES.md` and `.agents/supply/MEMORY.md` (older projects: `.agents/skills/`). Take the next number from `Highest TASK number`.
 2. **Write the quick task** first: `.agents/tasks/TASK-<N>_<short-name>.md` from `templates/quick-task.md`. Two minutes, not twenty: what, why, files, 2 to 4 acceptance boxes.
 3. **Fix** it, matching the surrounding code style.
 4. **Check**: **a quick fix still owes a test** that fails without the fix: write it first, run it on the unfixed code and see it fail, then fix. Then undo the fix once, see the test fail, restore it (`diff` identical). Run the tests closest to the change and the formatter/linter. For a visible change, look at it in the browser (Playwright headless, or visible if the user asked). The project's `BROWSER_CHECKS.md` rule and the Browser evidence block do **not** apply to a quick fix; if you did not open a browser, write `Browser: NOT RUN (quick fix)` in Result. If a test is truly impractical, say why in the Result instead of skipping it silently.
-5. **Record**: fill **Result** in the quick task, check verified boxes only, move it straight to `.agents/tasks/archive/quick-fixes/` (Marines self-review; no Douglas pass unless the user asks). Update `Highest TASK number` and add one line of at most about 20 words to `MEMORY.md` (word cap in RULES.md).
+5. **Record**: fill **Result** in the quick task, check verified boxes only, move it straight to `.agents/tasks/archive/quick-fixes/` (Marines self-review; no Douglas pass unless the user asks). Update `Highest TASK number` and add one labeled line of at most about 20 words to `MEMORY.md` (`[M-n|area|TASK-N]`, next ID from `Last IDs`; word cap in RULES.md). At 700 words or more, trim nothing yourself: tell the user `MEMORY.md at <n>/800 words` and ask archive, trim or both (CPT_CUTTER section 8).
 6. **Report** in a few lines: what changed, where, how it was verified, what was not. Do not commit or push unless the user said so.
 
 If during the fix it grows beyond the limits above, stop, keep the quick task as notes, and tell Cutter to hand it to Jerome.
