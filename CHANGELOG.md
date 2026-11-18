@@ -1,5 +1,30 @@
 # Changelog
 
+## v0.5.1: a test plan and a sharper review, 2026-11-18
+
+Planning said *what* to build and review proved it worked, but nobody wrote down *which tests* a change needs, and Douglas's hunt for holes had no fixed list for security and performance. v0.5.1 borrows the useful parts of two skills from Anthropic's Engineering plugin (`code-review` and `testing-strategy`, [anthropics/knowledge-work-plugins](https://github.com/anthropics/knowledge-work-plugins) @ `e91a134`, Apache-2.0) and folds them into the skills each unit already loads. Nothing new is loaded, so a mission reads about 20 more lines in total.
+
+### New
+- **Test plan** in the spec (`sdd-plan`, `templates/spec.md`): one row per area with the lowest level that proves it (unit for logic, integration for API and database, browser only for flows that matter) and the cases that must be tested (critical path, error handling, edge cases, role boundaries, data integrity; skip trivial code), plus gaps in existing tests the work relies on.
+- **Tests to write** in every task (`templates/task.md`): 1 to 5 lines copied from the test plan, and an acceptance box that they are all present, at the level named, and pass.
+- **Review lens** (`sdd-review` step 2.6): one pass over the changed lines only for security (injection, XSS, CSRF, SSRF, auth and role checks, secrets, deserialization), performance (N+1, unbounded queries, missing index, O(n^2) on a hot path, leaks), correctness (empty, null, duplicate, off-by-one, swallowed errors, races, types at the API boundary) and maintainability.
+- **Tests against the plan** (`sdd-review` step 2.2): a missing case, or one tested at a weaker level than named, is a finding (Medium for a risk area, otherwise Low).
+- **Verdict**: each finding gets an area tag (security, performance, correctness, tests, maintainability), and a one-line **Looks good:** says what is solid.
+- `THIRD_PARTY_NOTICES.md` and `licenses/Apache-2.0-anthropics-knowledge-work-plugins.txt`; each changed skill names its source in a comment.
+
+### Changed
+- `sdd-code`: the Coder (Alice or the ODST) writes every case in **Tests to write** at the level named; with none listed, the lowest level that proves it, plus the error path and one edge case.
+- `jerome`, `alice`, `douglas`: no longer suggest loading a separate `testing-strategy` skill, because the procedure is now built in (Jerome may still load one when the user asks for a wider test strategy).
+- `README.md`: v0.5.1 summary, rules 6 and 8, the folder list, and a note on why the plugin's skills are adapted rather than installed.
+
+### Changed files
+Skills `sdd-plan` (+ spec and task templates), `sdd-code`, `sdd-review`; agents `jerome`, `alice`, `douglas`; `README.md`; new `THIRD_PARTY_NOTICES.md` and `licenses/`.
+
+### Upgrading from v0.5
+1. Run the installer with `-Update` and the same choices you installed with (for example `.\install.ps1 -Scope Global -Project "<path>" -Update`). It replaces the changed skills and agents (old copies kept as `.bak-<date-time>`).
+2. Nothing in your depot changes. Specs and tasks written before v0.5.1 have no test plan; they keep working, and the Coder falls back to "lowest level that proves it, plus the error path and one edge case".
+3. Restart Claude Code so it loads the changed agents and skills.
+
 ## v0.5: browser checks that ship, 2026-11-14
 
 v0.4.1 said Douglas reviews "in a browser (Playwright)" but shipped nothing to make that work: `playwright.md` assumed a `playwright.config` and an `e2e/` folder most projects do not have, `RULES.md` had one line for it, and there was no shared Playwright install. A real project (Next.js, Windows) running v0.4.1 built the missing pieces by hand on 2026-11-13 and 14. v0.5 generalizes them and ships them, so a fresh install has them and `-Update` no longer rolls them back.
