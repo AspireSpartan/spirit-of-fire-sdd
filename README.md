@@ -20,6 +20,8 @@ A reusable **spec-driven development (SDD)** setup for Claude Code, for any full
 
 **In one sentence:** you give the order, Cutter decides whether the Marines handle it or the Spartans take it (Jerome plans, the ODST or Alice builds each task by its effort, Douglas reviews), and every job leaves a written record in the supply depot.
 
+**New in v0.5.3** (see `CHANGELOG.md`): **memory that is archived, not lost, and decisions read by index.** Every line in `MEMORY.md` and every entry in `DECISIONS.md` gets a short label such as `[M-042|auth|TASK-52]` or `D-017|auth|TASK-52`. When `MEMORY.md` reaches 700 of its 800 words, Cutter asks you whether to **archive** older lines (moved unchanged to `.agents/supply/memory-archive/`, still findable by ID), **trim** lines no longer in the current task batch, or both. `MEMORY.md` keeps a one-line-per-file **Archive index**, and `DECISIONS.md` gets a one-line-per-decision **Index**, so agents search the index and open only the entry they need instead of reading whole files. Decisions are never deleted, only marked `superseded by D-n`. Older depots: ask Cutter to "label memory and decisions".
+
 **New in v0.5.2** (see `CHANGELOG.md`): **the smallest complete change**, adapted from the Ponytail skill (MIT, see `THIRD_PARTY_NOTICES.md`). When Alice or the ODST build a task, they first reuse what the repo already has (a helper, the standard library, an installed package) and write only what the task needs, but never cut validation, error handling, security, accessibility or the task's tests. Douglas flags code the task did not ask for. About 12 lines added to `sdd-code`, nothing new loaded.
 
 **New in v0.5.1** (see `CHANGELOG.md`): **a test plan and a sharper review**, adapted from the code-review and testing-strategy skills in Anthropic's Engineering plugin (Apache-2.0, see `THIRD_PARTY_NOTICES.md`). Jerome's spec gets a short **Test plan** (which level proves each area, and which cases must be tested), each task gets **Tests to write**, the Coder writes them, and Douglas checks they are there and adds a security, performance and correctness pass over the changed lines. No new skill or agent is loaded for it, so usage stays the same.
@@ -61,6 +63,7 @@ Spirit-of-Fire-SDD/
     │       └── notebook-reminder.mjs  offers to write the notebook when context gets full
     └── .agents/                   the supply depot (in the project, or copied to the global folder)
         ├── supply/                RULES.md, MEMORY.md, NOTEBOOK.md, DECISIONS.md, BROWSER_CHECKS.md
+        │   └── memory-archive/    older MEMORY.md lines, created on the first archive (found by ID, never read whole)
         ├── policies/              your company, client or personal rules (empty; Jerome asks at setup)
         ├── specs/                 one folder per request
         └── tasks/                 TASK-N files → requires-review/ → archive/
@@ -315,7 +318,7 @@ These are built into `CPT_CUTTER.md` and the skills:
 2. **Ask before acting** when something is unclear or conflicts with the plan: 2 to 4 options, recommended first, then act on your answer.
 3. **Check boxes only when verified.** An open box with a reason is fine; a box ticked without checking is not.
 4. **Policies** in `.agents/policies/` bind everyone. The folder starts empty: during setup Jerome asks whether you have company, client or personal rules (Git connectivity, allowed services, data handling, licenses) and writes one policy file per rule set from what you give him, never from a guess. Add one later by telling Cutter "add a policy: ...".
-5. **Memory** (`MEMORY.md`, max 800 words) is updated after every job. **Notebook** (`NOTEBOOK.md`, max 50 lines) is written only when you ask. **Decisions** (`DECISIONS.md`, no cap, never pruned) hold what you chose to leave as it is.
+5. **Memory** (`MEMORY.md`, max 800 words) is updated after every job; at 700 words Cutter asks whether to archive older lines, trim them, or both, and never removes anything before you answer. **Notebook** (`NOTEBOOK.md`, max 50 lines) is written only when you ask. **Decisions** (`DECISIONS.md`, no cap, never deleted, only superseded) hold what you chose to leave as it is. Memory lines and decisions carry IDs (`M-042`, `D-017`), and agents read the index, then only the entry they need.
 6. **Prove it:** the spec's **test plan** names what must be tested and at which level, each task lists its **Tests to write**, a bug gets a failing test **before** the fix, every fix gets a **mutation check** (undo it, a test fails, restore it), and tests check the effect **where it lands** (the other role's page, the row, the email), on isolated data only.
 7. **Ripple check** before changing shared state: list everything that reads it.
 8. **Independent review** for features of 3+ tasks and for an audit's fixes: Douglas sees only the spec, the tasks and the diff, and runs his own mutation checks. Every review also checks the tests against the plan and looks at the changed lines for security, performance and correctness problems.
@@ -372,7 +375,7 @@ Because `RULES.md` is yours, an existing project does **not** receive the new ru
 - **The name `CLAUDE.md` must stay.** Claude Code only loads a file with that exact name, so it stays as a tiny loader and the commander's orders live in `.claude/CPT_CUTTER.md`.
 - **Agents folder.** User-level agents must be in `C:\Users\<you>\.claude\agents\`, not inside the skills folder.
 - **The branch guard reads commands, not intentions.** It covers `git push`, `merge`, `rebase` and `gh pr create`, including chained commands (`git add . && git push ...`). It doesn't stop you typing commands yourself in a terminal; it only guards what Claude runs. For full protection, also turn on branch protection in GitHub.
-- **Tested vs. draft.** The hooks and the installer (including `-Update`) were tested up to v0.4.1. In v0.5 the session-brief warnings, the review script and the harness smoke test were run, but the installer's new browser part has not been run on Windows yet: try it once and check its output. The agents and skills are drafts that encode a workflow proven by hand on a real project (see `CHANGELOG.md`); the ODST is new in v0.4.1 and not yet tried on a real project; the v0.5.1 test plan and review lens and the v0.5.2 smallest-change rule are text changes to the skills and have not been run on a real feature yet; try them on one real feature or audit first, then adjust the skills from what you see.
+- **Tested vs. draft.** The hooks and the installer (including `-Update`) were tested up to v0.4.1. In v0.5 the session-brief warnings, the review script and the harness smoke test were run, but the installer's new browser part has not been run on Windows yet: try it once and check its output. The agents and skills are drafts that encode a workflow proven by hand on a real project (see `CHANGELOG.md`); the ODST is new in v0.4.1 and not yet tried on a real project; the v0.5.1 test plan and review lens the v0.5.2 smallest-change rule and the v0.5.3 memory archive and indexes are text changes to the skills and have not been run on a real feature yet; try them on one real feature or audit first, then adjust the skills from what you see.
 - **Gated mode needs you to answer.** In gated mode nothing moves to the next stage until you say go; that is the point, but it means a long chain takes several messages from you. Switch to `auto` if you prefer fewer stops.
 
 ---
@@ -383,7 +386,7 @@ Most usage comes from re-reading: every message re-sends the whole conversation,
 
 1. **Start a fresh session** after "Done planning.", after a feature is approved, and after a long break. Say "write the notebook" first; the session brief picks it up.
 2. **Run the main session on Sonnet.** Switch to Opus only while you discuss design with Cutter.
-3. **Keep `MEMORY.md` under 800 words.** It is read at the start of every mission. Results and evidence belong in the task files.
+3. **Keep `MEMORY.md` under 800 words.** It is read at the start of every mission. Results and evidence belong in the task files. When Cutter asks at 700 words, choose **archive** to keep history findable by ID at no reading cost.
 4. **Let Jerome write the Context block** in every task, so the Coder does not read the whole spec.
 5. **Let the ODST take the low and medium tasks.** They run on Haiku, which costs a fraction of Sonnet, and that is most of the building. Keep Alice for high effort.
 6. **Use high effort only for risky work** (protected areas, money, migrations, security, dates).

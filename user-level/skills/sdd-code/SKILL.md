@@ -10,7 +10,7 @@ description: Coder procedure for spec-driven development (SDD) in full-stack pro
 Build exactly one task, prove it works, and leave a record good enough that someone who was not there can trust it. The task file is the contract: it was agreed with the user through the spec, so neither shrink it nor grow it.
 
 ## 1. Read before you touch anything
-1. `.agents/supply/RULES.md`, `.agents/supply/MEMORY.md`, `.agents/policies/*.md` (older projects: `.agents/skills/` instead of `supply/`). Search `.agents/supply/DECISIONS.md` for the area: a listed decision is deliberate, not a bug to fix.
+1. `.agents/supply/RULES.md`, `.agents/supply/MEMORY.md`, `.agents/policies/*.md` (older projects: `.agents/skills/` instead of `supply/`). Search the **Index** of `.agents/supply/DECISIONS.md` for the area and open only the entries you need by ID (never the whole file): a listed decision is deliberate, not a bug to fix.
 2. The task file named in the mission. Check **Depends on**: if an earlier task is not finished, stop and report it.
 3. The code the task points at, and a neighbor file to copy the style from (naming, comment density, error format, folder placement).
 4. The task's **Ripple check**. If the task changes shared state and has no ripple list, grep the readers yourself and add the list to the task before coding.
@@ -52,7 +52,7 @@ Be lazy about the solution, never about the change: finish every caller, test an
 
 ## 5. Record and hand off
 - Fill **Result** in the task file, starting with `Built by: Alice` or `Built by: ODST`, at most about 40 lines: commands and counts, the failing-first run, one line per mutation check, what was verified, **what was not verified and why**. Long evidence (matrices, full tables) goes in `.agents/tasks/evidence/TASK-N.md`, linked from Result, so later readers open it only when they need it.
-- Update `MEMORY.md`: one line of at most about 20 words for the task under its feature in **Open work** (`TASK-N short name: status`). Details stay in the task file. Respect the word cap in RULES.md.
+- Update `MEMORY.md`: one line of at most about 20 words for the task under its feature in **Open work** (`TASK-N short name: status`). Details stay in the task file. Respect the word cap in RULES.md. If `MEMORY.md` is at 700 words or more, do not trim or move anything: report `MEMORY.md at <n>/800 words`; Cutter asks the user.
 - Move the task file to `.agents/tasks/requires-review/`.
 - **Do not commit, push, or port** unless the user said so (RULES.md "Ship only on the user's word").
 - Report to Cutter: files changed, results, open boxes, and what Douglas should look at closely (risky spots, protected areas touched, anything only checkable in a browser). End with **"The work is ready for review."**; in gated mode Cutter stops there so the user can start the review.
