@@ -1,0 +1,39 @@
+# Moves existing release tags to new commits and replaces each release's zip with one built from the new commit.
+# Used after a history rewrite. Run it from Actions > "Move release tags" > Run workflow.
+# The commits must already be on main.
+name: Move release tags
+
+on:
+  workflow_dispatch:
+    inputs:
+      pairs:
+        description: "Space-separated tag=commit pairs, e.g. v0.5=cfcba6e9af89 v0.5.1=18b5ac8ee150"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  retag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Move tags and replace zips
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PAIRS: ${{ inputs.pairs }}
+        run: |
+          set -euo pipefail
+          for pair in $PAIRS; do
+            [[ "$pair" =~ ^(v[0-9]+(\.[0-9]+)*)=([0-9a-f]{7,40})$ ]] || { echo "Bad pair: $pair"; exit 1; }
+            TAG="${BASH_REMATCH[1]}"; SHA=$(git rev-parse --verify "${BASH_REMATCH[3]}^{commit}")
+            git merge-base --is-ancestor "$SHA" origin/main || { echo "$SHA is not on main"; exit 1; }
+            git push --force origin "$SHA:refs/tags/$TAG"
+            ZIP="spirit-of-fire-sdd-$TAG.zip"
+            git archive --format=zip --prefix="spirit-of-fire-sdd-$TAG/" -o "$ZIP" "$SHA" -- . ':(exclude).github'
+            gh release upload "$TAG" "$ZIP" --clobber
+            echo "$TAG -> $SHA, $ZIP replaced"
+          done
