@@ -2,6 +2,7 @@
 name: sdd-plan
 description: Planner procedure for spec-driven development (SDD) in full-stack projects that keep an .agents/ folder. Use it whenever you plan a feature, bug fix, schema or API change, migration, deployment or refactor before coding; whenever someone asks for a spec, plan, blueprint, task breakdown or TASK-N files; and always when acting as Jerome or the Planner role, even if the request does not say "spec".
 ---
+<!-- Parts adapted from anthropics/knowledge-work-plugins engineering/skills/testing-strategy/SKILL.md @ e91a134 (Apache-2.0; see THIRD_PARTY_NOTICES.md). Changes: testing pyramid and cover/skip list turned into the spec's test plan and the task's Tests to write. -->
 
 # SDD Plan (Jerome)
 
@@ -36,7 +37,8 @@ When a `<module>-review/spec.md` exists, it is the contract: plan one fix per fi
 
 Folder: `.agents/specs/<request-name>/` (short kebab-case). Use the templates in `templates/spec.md` and `templates/plan.md`.
 
-- **spec.md**: problem, goals, non-goals, data/schema changes, API contracts in the project's response format, high-level acceptance, known limits, **open questions**.
+- **spec.md**: problem, goals, non-goals, data/schema changes, API contracts in the project's response format, a **test plan**, high-level acceptance, known limits, **open questions**.
+- **Test plan** (a short table in the spec): for each area, the lowest test level that proves it (unit for logic, integration for API and database, browser only for flows that matter) and the cases that must be tested: critical path, error handling, edge cases (empty, null, too long, duplicate), role and permission boundaries, data integrity. Skip trivial code. Note gaps in existing tests the work relies on. Each task copies its rows into **Tests to write**.
 - **plan.md**: task order with a reason for the order, files to create and change (exact paths), patterns to copy, risks.
 
 ## 4. Open questions go back to the commander
@@ -56,7 +58,7 @@ Stop after writing the spec when there are open questions. When Cutter sends the
 
 Folder: `.agents/tasks/`, named `TASK-<N>_<short-name>.md`, numbered in execution order starting at `Highest TASK number + 1`. Use `templates/task.md`, and fill its **Context** block for every task: the spec and plan lines that task needs, so the Coder does not read the whole spec. Prefer fewer, coherent tasks over many small ones: each task costs a full agent start for the Coder and for Douglas. Each task should be small enough for one Coder session and have acceptance boxes a stranger could verify (a command and its expected result, a behavior in the browser, a grep that returns nothing). Put a **suggested effort** (low, medium, high) at the top of each task. Cutter uses it to pick the Coder: **low and medium go to the ODST** (a cheaper model), **high goes to Alice**. Mark high for protected areas, migrations, security, money, dates and time zones; a low or medium task must be buildable from its own Context block.
 
-Every task also carries, as acceptance boxes (see `templates/task.md`): a **ripple check** when it changes shared state, **reproduce first** for a bug (the failing test, recorded), and a **mutation check** (undo the fix, a test fails, restore). The last task of a feature is usually an independent review task for Douglas (browser test plus acceptance pass).
+Every task lists its **Tests to write** (its rows from the test plan: level and cases, 1 to 5 lines), and carries, as acceptance boxes (see `templates/task.md`): a **ripple check** when it changes shared state, **reproduce first** for a bug (the failing test, recorded), and a **mutation check** (undo the fix, a test fails, restore). The last task of a feature is usually an independent review task for Douglas (browser test plus acceptance pass).
 
 ## 6. Update memory and report
 
