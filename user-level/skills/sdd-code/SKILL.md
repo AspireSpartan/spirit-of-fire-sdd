@@ -1,8 +1,9 @@
 ---
 name: sdd-code
-description: Coder procedure for spec-driven development (SDD) in full-stack projects that keep an .agents/ folder. Use it whenever you implement a TASK-N file, continue a half-finished task, or fix findings a reviewer sent back; and always when acting as Alice, the ODST or the Coder role. Covers reading the task, reproducing a bug with a failing test first, matching existing code style, the ripple check, mutation checks, verifying every acceptance box, running formatters and tests, and leaving an honest record in the task file and memory.
+description: Coder procedure for spec-driven development (SDD) in full-stack projects that keep an .agents/ folder. Use it whenever you implement a TASK-N file, continue a half-finished task, or fix findings a reviewer sent back; and always when acting as Alice, the ODST or the Coder role. Covers reading the task, the smallest complete change (reuse what the repo has, write only what the task needs), reproducing a bug with a failing test first, matching existing code style, the ripple check, mutation checks, verifying every acceptance box, running formatters and tests, and leaving an honest record in the task file and memory.
 ---
 <!-- Parts adapted from anthropics/knowledge-work-plugins engineering/skills/testing-strategy/SKILL.md @ e91a134 (Apache-2.0; see THIRD_PARTY_NOTICES.md). Changes: testing pyramid and cover/skip list turned into the spec's test plan and the task's Tests to write. -->
+<!-- "Smallest complete change" in step 3 adapted from DietrichGebert/ponytail skills/ponytail/SKILL.md @ 96608e0 (MIT; see THIRD_PARTY_NOTICES.md). Changes: shortened; levels, session mode and its own test rule left out (step 2 governs tests). -->
 
 # SDD Code (Alice and the ODST)
 
@@ -22,10 +23,19 @@ Before the fix, write the test that shows the bug and **run it on the unfixed co
 **Tests to write.** Write every case the task's **Tests to write** lists, at the level it names. If the task has none, pick the lowest level that proves the behavior (unit for logic, integration for API and database) and cover the error path and one edge case, not only the happy path. A case you could not write goes in Result with the reason.
 
 ## 3. Build
+**Smallest complete change.** Take the first option that fully does the task:
+1. Is it in the task? Build nothing the task does not ask for (options, flexibility, "for later" code); name a tempting extra in Result in one line.
+2. Is it already in this codebase (helper, component, service, pattern)? Reuse it the way the neighbors do.
+3. Is it in the standard library or the platform? Use it, unless the project has its own (a house component beats a native widget).
+4. Is it in an installed package? Use it. No new packages unless RULES.md lists them or the task says the user approved them; never one for a few lines.
+5. Otherwise, the least code that works.
+
+Be lazy about the solution, never about the change: finish every caller, test and fixture the ripple check names. No wrapper, abstraction or config nobody asked for; deletion beats addition. The shortest working diff wins, but a one-liner that needs decoding is not short, and between options of equal size take the one that is right on edge cases. A bug is fixed once at its root in the shared code. Code you move keeps its validation and error handling. **Never cut** validation at trust boundaries, error handling that prevents data loss, security, accessibility, the task's **Tests to write**, or anything the user asked for.
+
 - Write complete code, never placeholders like `// ...rest`.
 - Keep the project's conventions: folder per role, logic in services, response envelopes, API calls through the shared client. RULES.md lists them.
 - Protected areas named in RULES.md change only when the task says so.
-- No new packages unless RULES.md lists them or the task says the user approved them.
+- Comment only the why the code cannot show, in one line. A shortcut with a known limit gets `// shortcut: <the limit>, <when to upgrade>`.
 - Errors shown to people are plain sentences. Never let a database or framework message (SQL, table names, hosts) reach a screen; log it and show a safe sentence.
 
 **When reality disagrees with the task** (a file is not where the task says, a fix would change behavior the spec did not mention): do not quietly work around it. Write what you found in the task file under **Result**, and if the change is small and clearly within the task's intent, adjust and note it. If it changes scope or behavior, stop and report options to Cutter.

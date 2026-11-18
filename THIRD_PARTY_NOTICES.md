@@ -14,3 +14,11 @@ Spirit of Fire SDD is MIT licensed (see `LICENSE`). It includes or adapts the fo
   - `user-level/skills/sdd-plan/SKILL.md` and `templates/spec.md`, `templates/task.md`: the testing pyramid and the cover/skip list as the spec's **Test plan** and the task's **Tests to write**.
   - `user-level/skills/sdd-code/SKILL.md`: the Coder writes the task's **Tests to write** at the level named.
 - Each changed skill carries a comment under its front matter naming the source. No other files from that repository are included.
+
+## DietrichGebert/ponytail: `ponytail` skill
+- Source: https://github.com/DietrichGebert/ponytail, `skills/ponytail/SKILL.md`, commit `96608e078b2d5ea607c5c3b8b5a54d1c1fba6846`.
+- License: MIT, Copyright (c) 2026 DietrichGebert. A copy is in `licenses/MIT-DietrichGebert-ponytail.txt`.
+- What was adapted (v0.5.2), rewritten in Spirit of Fire's own words and shortened:
+  - `user-level/skills/sdd-code/SKILL.md` step 3: the "smallest complete change" ladder, the rules on wrappers, deletion, root-cause fixes, moved code and `shortcut:` comments, and the "never cut" list. Its levels (lite, full, ultra), session mode, reply footer and its own test rule are left out; the task's **Tests to write** (v0.5.1) govern tests.
+  - `user-level/skills/sdd-review/SKILL.md` step 2.6: "code the task did not ask for" as a maintainability finding.
+- `sdd-code` carries a comment under its front matter naming the source. No other files from that repository are included.
