@@ -18,6 +18,10 @@ One line tying back to the spec.
 ## Rules to watch
 Anything from RULES.md, DECISIONS.md or policies that matters here.
 
+## Tests to write
+From the spec's test plan, 1 to 5 lines: `<level: unit / integration / browser>: <case>`. The Coder writes these; Douglas checks they exist and assert the outcome.
+- <level>: <case>
+
 ## Ripple check
 (Only when shared state changes: a status, action name, shared column, settings key, API field, uniqueness rule.) Every reader of it, and what each needs:
 - <reader (file or page)>: <what it needs>
@@ -25,6 +29,7 @@ Anything from RULES.md, DECISIONS.md or policies that matters here.
 ## Acceptance check
 - [ ] <specific, testable statement: command + expected result, or browser behavior, checked where the effect lands>
 - [ ] <another one>
+- [ ] **Tests to write** are all present, at the level named, and pass.
 - [ ] **Reproduced first** (bugs): the failing test was written before the fix and its failure recorded in Result.
 - [ ] **Mutation check recorded:** undo the fix, a test fails, restore it (`diff` identical).
 - [ ] Formatter and linter pass on touched files.

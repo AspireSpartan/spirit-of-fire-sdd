@@ -2,6 +2,7 @@
 name: sdd-code
 description: Coder procedure for spec-driven development (SDD) in full-stack projects that keep an .agents/ folder. Use it whenever you implement a TASK-N file, continue a half-finished task, or fix findings a reviewer sent back; and always when acting as Alice, the ODST or the Coder role. Covers reading the task, reproducing a bug with a failing test first, matching existing code style, the ripple check, mutation checks, verifying every acceptance box, running formatters and tests, and leaving an honest record in the task file and memory.
 ---
+<!-- Parts adapted from anthropics/knowledge-work-plugins engineering/skills/testing-strategy/SKILL.md @ e91a134 (Apache-2.0; see THIRD_PARTY_NOTICES.md). Changes: testing pyramid and cover/skip list turned into the spec's test plan and the task's Tests to write. -->
 
 # SDD Code (Alice and the ODST)
 
@@ -17,6 +18,8 @@ No task file means no code. If the mission has none, say so and stop.
 
 ## 2. Reproduce first (bugs and audit findings)
 Before the fix, write the test that shows the bug and **run it on the unfixed code**. Record in **Result** that it failed and how. A fix whose test never failed has not been shown to fix anything. For a feature, write the tests for the new behavior alongside the code, at the level where the effect lands (the other role's page, the row, the email), not only the form.
+
+**Tests to write.** Write every case the task's **Tests to write** lists, at the level it names. If the task has none, pick the lowest level that proves the behavior (unit for logic, integration for API and database) and cover the error path and one edge case, not only the happy path. A case you could not write goes in Result with the reason.
 
 ## 3. Build
 - Write complete code, never placeholders like `// ...rest`.

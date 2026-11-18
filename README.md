@@ -16,9 +16,11 @@ A reusable **spec-driven development (SDD)** setup for Claude Code, for any full
 | **Professor Anders** | `anders` agent | **Researcher and Skill vetter**: finds facts outside the repo, and finds and vets new skills before anything is installed. Read-only, no shell. | Sonnet |
 | **Marines** | Cutter himself, using the `sdd-marine` skill | Small fixes: plan, code and check in one pass | your session model |
 | **Supply depot** | `.agents/` in each project, or a global folder per project and branch | Rules, memory, notebook, **decisions**, policies, specs, tasks: what every unit reads first | |
-| **Armory** | `~/.claude/skills/` | Skills any unit can pick up (debug, architecture, testing-strategy, ...) | |
+| **Armory** | `~/.claude/skills/` | Skills any unit can pick up (debug, architecture, ...) | |
 
 **In one sentence:** you give the order, Cutter decides whether the Marines handle it or the Spartans take it (Jerome plans, the ODST or Alice builds each task by its effort, Douglas reviews), and every job leaves a written record in the supply depot.
+
+**New in v0.5.1** (see `CHANGELOG.md`): **a test plan and a sharper review**, adapted from the code-review and testing-strategy skills in Anthropic's Engineering plugin (Apache-2.0, see `THIRD_PARTY_NOTICES.md`). Jerome's spec gets a short **Test plan** (which level proves each area, and which cases must be tested), each task gets **Tests to write**, the Coder writes them, and Douglas checks they are there and adds a security, performance and correctness pass over the changed lines. No new skill or agent is loaded for it, so usage stays the same.
 
 **New in v0.5** (see `CHANGELOG.md`): **browser checks that actually ship.** Each project gets a browser-check page (`.agents/supply/BROWSER_CHECKS.md`: dev server, accounts per role, routes, UI paths, test data, evidence), the installer can set up one pinned Playwright harness (it asks *Install browser checks? Y/N*; no browser download), and Douglas runs one standard review script on every UI task. A UI task is not approved without its **Browser evidence**, and anything still marked "to be tested in a browser" forces a browser run. The improvements a real project made by hand to v0.4.1 are built in, so `-Update` no longer rolls them back.
 
@@ -37,6 +39,7 @@ A reusable **spec-driven development (SDD)** setup for Claude Code, for any full
 ```
 Spirit-of-Fire-SDD/
 ├── README.md                  ← you are here
+├── THIRD_PARTY_NOTICES.md     ← what was adapted from other projects, and their licenses (copies in licenses/)
 ├── install.ps1                ← asks: global or project only, where the depot lives, and which parts to skip; then copies (never overwrites; -Update replaces framework files after a backup)
 ├── user-level/                ← install ONCE for your Windows user; shared by all projects
 │   ├── agents/                    jerome.md, alice.md, odst.md (low/medium tasks), douglas.md (reviews and audits), anders.md (research, skill vetting)
@@ -311,9 +314,9 @@ These are built into `CPT_CUTTER.md` and the skills:
 3. **Check boxes only when verified.** An open box with a reason is fine; a box ticked without checking is not.
 4. **Policies** in `.agents/policies/` bind everyone. The folder starts empty: during setup Jerome asks whether you have company, client or personal rules (Git connectivity, allowed services, data handling, licenses) and writes one policy file per rule set from what you give him, never from a guess. Add one later by telling Cutter "add a policy: ...".
 5. **Memory** (`MEMORY.md`, max 800 words) is updated after every job. **Notebook** (`NOTEBOOK.md`, max 50 lines) is written only when you ask. **Decisions** (`DECISIONS.md`, no cap, never pruned) hold what you chose to leave as it is.
-6. **Prove it:** a bug gets a failing test **before** the fix, every fix gets a **mutation check** (undo it, a test fails, restore it), and tests check the effect **where it lands** (the other role's page, the row, the email), on isolated data only.
+6. **Prove it:** the spec's **test plan** names what must be tested and at which level, each task lists its **Tests to write**, a bug gets a failing test **before** the fix, every fix gets a **mutation check** (undo it, a test fails, restore it), and tests check the effect **where it lands** (the other role's page, the row, the email), on isolated data only.
 7. **Ripple check** before changing shared state: list everything that reads it.
-8. **Independent review** for features of 3+ tasks and for an audit's fixes: Douglas sees only the spec, the tasks and the diff, and runs his own mutation checks.
+8. **Independent review** for features of 3+ tasks and for an audit's fixes: Douglas sees only the spec, the tasks and the diff, and runs his own mutation checks. Every review also checks the tests against the plan and looks at the changed lines for security, performance and correctness problems.
 9. **Ship only on the user's word:** commit, push, merge and porting.
 
 ---
@@ -367,7 +370,7 @@ Because `RULES.md` is yours, an existing project does **not** receive the new ru
 - **The name `CLAUDE.md` must stay.** Claude Code only loads a file with that exact name, so it stays as a tiny loader and the commander's orders live in `.claude/CPT_CUTTER.md`.
 - **Agents folder.** User-level agents must be in `C:\Users\<you>\.claude\agents\`, not inside the skills folder.
 - **The branch guard reads commands, not intentions.** It covers `git push`, `merge`, `rebase` and `gh pr create`, including chained commands (`git add . && git push ...`). It doesn't stop you typing commands yourself in a terminal; it only guards what Claude runs. For full protection, also turn on branch protection in GitHub.
-- **Tested vs. draft.** The hooks and the installer (including `-Update`) were tested up to v0.4.1. In v0.5 the session-brief warnings, the review script and the harness smoke test were run, but the installer's new browser part has not been run on Windows yet: try it once and check its output. The agents and skills are drafts that encode a workflow proven by hand on a real project (see `CHANGELOG.md`); the ODST is new in v0.4.1 and not yet tried on a real project; try them on one real feature or audit first, then adjust the skills from what you see.
+- **Tested vs. draft.** The hooks and the installer (including `-Update`) were tested up to v0.4.1. In v0.5 the session-brief warnings, the review script and the harness smoke test were run, but the installer's new browser part has not been run on Windows yet: try it once and check its output. The agents and skills are drafts that encode a workflow proven by hand on a real project (see `CHANGELOG.md`); the ODST is new in v0.4.1 and not yet tried on a real project; the v0.5.1 test plan and review lens are text changes to the skills and have not been run on a real feature yet; try them on one real feature or audit first, then adjust the skills from what you see.
 - **Gated mode needs you to answer.** In gated mode nothing moves to the next stage until you say go; that is the point, but it means a long chain takes several messages from you. Switch to `auto` if you prefer fewer stops.
 
 ---
@@ -387,6 +390,8 @@ Most usage comes from re-reading: every message re-sends the whole conversation,
 To see the effect, run `/context` at the start of a session and check `/usage` before and after a mission.
 
 ## Skills from outside (Anders)
+
+**Why not install the Engineering plugin's `code-review` and `testing-strategy` as they are?** They are generic and would be loaded on top of `sdd-review` and `sdd-plan`, so every review and plan would read two procedures that partly overlap. v0.5.1 takes the useful parts (the review areas and the test pyramid with its cover/skip list) into the existing skills instead, in about 20 lines, with credit in `THIRD_PARTY_NOTICES.md`.
 
 Outside skills run with your permissions, so they are treated like code from a stranger:
 - **Anders** searches (`find-skills`, which only searches) and vets each candidate: source and commit, license, cost (anything that can bill you is rejected), commands and network calls, `allowed-tools` lines (they skip permission prompts), `` !` `` lines (they run a command when the skill loads), injection, and token cost. She has no shell, so a hostile skill cannot make her run anything.

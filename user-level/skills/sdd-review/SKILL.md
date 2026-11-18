@@ -1,7 +1,8 @@
 ---
 name: sdd-review
-description: Reviewer procedure for spec-driven development (SDD) in full-stack projects that keep an .agents/ folder. Use it whenever finished work must be audited or approved, a task sits in .agents/tasks/requires-review/, someone asks to review, verify, QA or browser-test a change, or before calling a feature done; and always when acting as Douglas or the Reviewer role. Includes independent review (spec, tasks and diff only), the reviewer's own mutation checks, Playwright browser testing (headless by default, visible on request) and the approve/archive step.
+description: Reviewer procedure for spec-driven development (SDD) in full-stack projects that keep an .agents/ folder. Use it whenever finished work must be audited or approved, a task sits in .agents/tasks/requires-review/, someone asks to review, verify, QA or browser-test a change, or before calling a feature done; and always when acting as Douglas or the Reviewer role. Includes independent review (spec, tasks and diff only), a security, performance and correctness pass on the changed lines, a check of the tests against the plan, the reviewer's own mutation checks, Playwright browser testing (headless by default, visible on request) and the approve/archive step.
 ---
+<!-- Parts adapted from anthropics/knowledge-work-plugins engineering/skills/{code-review,testing-strategy}/SKILL.md @ e91a134 (Apache-2.0; see THIRD_PARTY_NOTICES.md). Changes: review dimensions condensed into a changed-lines lens and a test-plan check; testing pyramid and cover/skip list turned into the spec's test plan and the task's Tests to write. -->
 
 # SDD Review (Douglas)
 
@@ -19,13 +20,17 @@ The brief says `Independent review: yes | no`. It is **yes** for a feature of 3 
 
 ## 2. Check
 1. **Acceptance items, one by one.** Re-run each command yourself. For behavior, see it happen, **where it lands** (the other role's page, the row, a login attempt, the email), not only on the form that was edited.
-2. **Tests.** Run the gate once (backend suite, lint, build) with a short reporter; read only failures. Note counts and compare with the last known numbers in memory. Read the new tests critically: do they assert the outcome or only a label?
+2. **Tests.** Run the gate once (backend suite, lint, build) with a short reporter; read only failures. Note counts and compare with the last known numbers in memory. Read the new tests critically: do they assert the outcome or only a label? Compare them with the task's **Tests to write**: a missing case, or a case tested at a weaker level than named (a unit test where the plan says integration), is a finding (Medium when it guards a risk area, otherwise Low).
 3. **Browser (required for any task that touches the UI paths listed in the project's browser-check page).** Run the standard review script on the touched routes and roles: `references/review-script.md` (the project's browser-check page, named in RULES.md "Commands", gives the facts it needs; fallback and probes in `references/playwright.md`). Run **headless unless the mission says the user wants to watch** ("visible", "headed", "show me"). Put the result in the verdict's **Browser evidence** block.
    **No browser-check page?** If the project has no `BROWSER_CHECKS.md` (RULES.md "Commands"), or it still carries the `sof:template` marker, stop the browser step and report **"browser setup missing"** to Cutter, who offers the setup step (`sdd-setup`, browser part). Only a user waiver quoted in the brief skips it; then fill `Waived:` in Browser evidence.
    **Open browser items force a browser run.** Scan the task's acceptance checklist and the Coder's Result for any item or note that says something is still to be tested in a browser or on an actual UI screen (for example "to be tested in a browser", "not verified in a browser", "not tested on a real screen", "needs user/tester interaction", or an unticked `[ ]` item of that kind). Search the Result first for the fixed marker `Browser: NOT RUN (` (the Coder writes it whenever a UI task was not run in a browser), then do the free-text scan as a backup. Each one must be run through the project's browser-check page (RULES.md "Commands"), even if the diff looks like it touches no UI path. In Browser evidence, name the item and give its result and evidence path. Tick it only with that evidence. If you cannot run it (port busy, harness missing, needs a real device), do not tick it: list it under **Not verified** with the reason.
 4. **Rules.** Check the diff against RULES.md: envelopes, folder placement, no unapproved packages, protected areas, branch rules, no secrets in git. Check the task's **ripple list** against a grep of your own: is there a reader nobody listed?
 5. **Mutation checks, your own.** Normal review: **at least 1**, on the riskiest fix. Independent review or a protected area: **at least 3**, different from the Coder's. Each: undo one line of a fix, run **only the test file that should catch it**, confirm a test fails, restore the file, verify with `diff` that it is identical. Record each (what you undid, what failed). If undoing a fix fails nothing, that is a finding: the fix is not guarded.
-6. **Hunt for holes the Coder missed.** Think like the audit (`sdd-audit` attack list): other entry paths into the same data, parallel requests, a second endpoint, messages that leak internals, a role that should not be able to do it.
+6. **Hunt for holes the Coder missed.** Think like the audit (`sdd-audit` attack list): other entry paths into the same data, parallel requests, a second endpoint, messages that leak internals, a role that should not be able to do it. Then one pass over the **changed lines only** with this lens (skip what the linter and the gate already cover):
+   - **Security:** injection (SQL, command, path traversal), XSS, CSRF, SSRF, missing auth or role check, secrets in code, unsafe deserialization.
+   - **Performance:** N+1 queries, unbounded queries or loops (no limit or pagination), a missing index for a new filter, O(n²) work on a hot path, leaked connections, handles or listeners.
+   - **Correctness:** empty, null, zero, too long, duplicate; off-by-one; errors swallowed or passed on wrong; races between two requests; type mismatches at the API boundary.
+   - **Maintainability:** unclear names, copy-paste of an existing helper, a non-obvious rule with no comment.
 7. **Test data cleanup.** If the project defines one (RULES.md), confirm it ran and check its log line. Confirm the before/after counts and the deleted ids are in the task file.
 8. **Flakes.** A failure you cannot reproduce on rerun is reported as a *suspected flake* with both results; do not wave it through, and do not block on it without a rerun.
 
@@ -37,7 +42,7 @@ Fill **Review** in the task file:
 ```
 Verdict: APPROVED | CHANGES REQUESTED
 Acceptance: <each item: pass/fail + evidence (command output, screenshot path, test name)>
-Findings (most severe first): <file:line, severity, what is wrong, a concrete failure scenario, how to reproduce>
+Findings (most severe first): <file:line, severity, area (security / performance / correctness / tests / maintainability), what is wrong, a concrete failure scenario, how to reproduce>
 Tests: <commands and counts>
 Browser evidence:
 - Run: headless | visible; script <scratchpad path>; port <n>; database check <result>
@@ -53,6 +58,7 @@ Browser evidence:
 - Waived: no | yes (user, in the brief: "<quote>")
 Mutation checks: <what you undid, which test failed, restored + diff identical>
 Not verified: <what you could not check and why>
+Looks good: <one line on what is solid, so the user knows what not to worry about>
 ```
 
 **Gate:** A task that touches the project's UI paths cannot be APPROVED without the Browser evidence block, unless the brief quotes the user waiving it. A missing block is CHANGES REQUESTED ("browser evidence missing").
