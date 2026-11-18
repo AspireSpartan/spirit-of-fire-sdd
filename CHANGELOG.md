@@ -1,5 +1,27 @@
 # Changelog
 
+## v0.5.3: memory that is archived, not lost, and decisions read by index, 2026-11-18
+
+`MEMORY.md` is capped at 800 words and the rule was "shorten the oldest Finished lines first", so as a project grew, facts the agents needed to stay on track were trimmed away for good. `DECISIONS.md` has no cap, and agents searched it with a free-text grep, which got slower and less reliable as it grew. v0.5.3 labels every line, archives instead of deleting, and gives both files a short index so agents read the index and open only the entry they need.
+
+### New
+- **IDs and tags** (`RULES.md` "Memory and notebook"): every memory line is labeled `[M-042|auth|TASK-52]`, every decision `D-017|auth|TASK-52` (ID, one area word, the task or `-`). IDs never change and are never reused. `MEMORY.md` carries `Last IDs: M-n, D-n` next to `Highest TASK number`. Files point at each other by ID (`see D-017`, `Related: M-042`) instead of copying text. The label is one word, so it costs about one word per line against the cap.
+- **Ask at 700 words**: no agent trims or moves memory lines. It reports `MEMORY.md at <n>/800 words`, and Cutter asks the user: **Archive older lines** (recommended), **Trim lines not in the current task batch** (the old behavior, deleted for good), or **Both**. Nothing is removed before the answer.
+- **Memory archive** `.agents/supply/memory-archive/M-<first ID>.md`: whole lines move unchanged with their IDs, oldest Finished lines and closed Known issues first, up to 800 words per file. `MEMORY.md` gets an **Archive index** (one line per archive file: ID range, areas, date). Archive files are never loaded at session start and never read whole: agents search them as plain text for `[M-042|` or `|auth|`.
+- **`DECISIONS.md` Index**: one line per decision at the top (`D-n|area|TASK-n: decision (date)`), newest first, ending at `<!-- end of index -->`. Agents search the Index for the area, then read only the entries they need (`## D-n|`). Decisions are never deleted or trimmed: a changed decision gets a new ID and the old one is marked `superseded by D-n`. Entries get a `Related:` line for memory and decision IDs.
+- **Session brief**: prints `MEMORY.md at <n>/800 words` with the archive/trim question when the file is at 700 words or more, and offers the one-time labeling when `MEMORY.md` has no `Last IDs` line (a depot from before v0.5.3).
+- **Labeling an older depot** (`CPT_CUTTER.md` section 8): on the user's word, Cutter numbers memory lines top to bottom and decisions oldest first, builds the Index, adds `Last IDs` and the Archive index, and changes no fact's wording.
+- Global depot map: `.agents/supply/memory-archive/` (shared by all branches).
+
+### Changed
+- Agents `alice`, `odst`, `jerome`, `douglas`, `anders` and skills `sdd-code`, `sdd-review`, `sdd-plan`, `sdd-marine`, `sdd-audit`, `sdd-setup`: search the **Index** of `DECISIONS.md` and open entries by ID instead of grepping the whole file; new memory lines and decisions are labeled; at 700 words they report instead of trimming.
+- `CPT_CUTTER.md` sections "Supply depot" and 8; `RULES.md` template sections "Accepted decisions" and "Memory and notebook"; `MEMORY.md` and `DECISIONS.md` templates; `session-brief.mjs`; `depot.mjs`; `README.md`.
+
+### Upgrading from v0.5.2
+1. Run the installer with `-Update` and the same choices you installed with. It replaces the changed agents, skills, `CPT_CUTTER.md` and hooks (old copies kept as `.bak-<date-time>`). Your `RULES.md`, `MEMORY.md` and `DECISIONS.md` are kept.
+2. In `RULES.md`, replace the sections **Accepted decisions** and **Memory and notebook** with the ones from `project-template/.agents/supply/RULES.md` (or ask Cutter: *"Compare RULES.md with the template and add the missing sections"*).
+3. Restart Claude Code. The session brief now says `MEMORY.md has no "Last IDs" line`: say yes to the labeling, or ask Cutter *"label memory and decisions"*. Check the result; no fact's wording should change. If `MEMORY.md` is at 700 words or more afterwards, Cutter asks whether to archive, trim or both.
+
 ## v0.5.2: the smallest complete change, 2026-11-18
 
 Coders were told to match the project's style and not add packages, but not to look for something that already exists before writing new code, so a task could come back with a new helper, wrapper or option nobody asked for, and every extra line costs tokens to write and to review. v0.5.2 takes the core of the Ponytail skill ([DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail) @ `96608e0`, MIT) into `sdd-code`, the skill Alice and the ODST already load. Nothing new is loaded; `sdd-code` grows by about 12 lines.

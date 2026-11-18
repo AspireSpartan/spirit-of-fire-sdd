@@ -3,7 +3,7 @@
 // (.agents/, committed or ignored by git) or in a global folder per project and branch:
 //
 //   ~/.claude/spirit-of-fire/<depotName>/
-//     RULES.md, MEMORY.md, DECISIONS.md, policies/, research/, archive/   shared by all branches
+//     RULES.md, MEMORY.md, DECISIONS.md, memory-archive/, policies/, research/, archive/   shared
 //     branches/<branch>/NOTEBOOK.md, specs/, tasks/                         one set per branch
 //
 // Skills and orders always write paths as ".agents/...". In global mode this file turns them
@@ -89,6 +89,7 @@ export function resolveDepot(root) {
       ['.agents/supply/DECISIONS.md', join(base, 'DECISIONS.md')],
       ['.agents/supply/NOTEBOOK.md', join(branchDir, 'NOTEBOOK.md')],
       ['.agents/supply/BROWSER_CHECKS.md', join(base, 'BROWSER_CHECKS.md')],
+      ['.agents/supply/memory-archive/', join(base, 'memory-archive') + sep],
       ['.agents/policies/', join(base, 'policies') + sep],
       ['.agents/research/', join(base, 'research') + sep],
       ['.agents/tasks/archive/', join(base, 'archive') + sep],
