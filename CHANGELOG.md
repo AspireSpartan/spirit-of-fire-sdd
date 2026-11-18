@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.5.2: the smallest complete change, 2026-11-18
+
+Coders were told to match the project's style and not add packages, but not to look for something that already exists before writing new code, so a task could come back with a new helper, wrapper or option nobody asked for, and every extra line costs tokens to write and to review. v0.5.2 takes the core of the Ponytail skill ([DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail) @ `96608e0`, MIT) into `sdd-code`, the skill Alice and the ODST already load. Nothing new is loaded; `sdd-code` grows by about 12 lines.
+
+### New
+- **Smallest complete change** (`sdd-code` step 3): take the first option that fully does the task: is it in the task, already in the codebase, in the standard library or platform, in an installed package; otherwise the least code that works. Be lazy about the solution, never about the change (every caller, test and fixture the ripple check names). No wrappers, abstractions or config nobody asked for; fix a bug once at its root; moved code keeps its validation. **Never cut** validation at trust boundaries, error handling that prevents data loss, security, accessibility, the task's **Tests to write**, or anything the user asked for. A tempting extra is named in Result in one line.
+- **`shortcut:` comments**: a shortcut with a known limit gets `// shortcut: <the limit>, <when to upgrade>`.
+- **Review**: Douglas's maintainability pass (`sdd-review` step 2.6) flags code the task did not ask for.
+- `THIRD_PARTY_NOTICES.md` entry and `licenses/MIT-DietrichGebert-ponytail.txt`.
+
+### Left out, on purpose
+- Ponytail as a separate skill or plugin (it would load on every coding task next to `sdd-code`), its levels and session mode, its reply footer (Result already records what was not verified), and its "one small test" rule (v0.5.1's **Tests to write** decide which tests a task needs).
+
+### Changed files
+Skills `sdd-code`, `sdd-review`; `README.md`; `THIRD_PARTY_NOTICES.md`; new `licenses/MIT-DietrichGebert-ponytail.txt`.
+
+### Upgrading from v0.5.1
+1. Run the installer with `-Update` and the same choices you installed with. It replaces the two changed skills (old copies kept as `.bak-<date-time>`).
+2. Nothing in your depot changes. Restart Claude Code so it loads the changed skills.
+
 ## v0.5.1: a test plan and a sharper review, 2026-11-18
 
 Planning said *what* to build and review proved it worked, but nobody wrote down *which tests* a change needs, and Douglas's hunt for holes had no fixed list for security and performance. v0.5.1 borrows the useful parts of two skills from Anthropic's Engineering plugin (`code-review` and `testing-strategy`, [anthropics/knowledge-work-plugins](https://github.com/anthropics/knowledge-work-plugins) @ `e91a134`, Apache-2.0) and folds them into the skills each unit already loads. Nothing new is loaded, so a mission reads about 20 more lines in total.
