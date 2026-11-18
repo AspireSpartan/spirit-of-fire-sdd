@@ -56,20 +56,24 @@ Before changing a status value, an action name, a shared column, a settings key,
 For a feature of **3 or more tasks**, and for the fixes that come out of an audit, the review is independent: Douglas (or any fresh session) gets only the spec, the task files and the diff, not the Coder's reasoning, re-tests every claim himself, and runs his own mutation checks. His verdict is APPROVED or CHANGES REQUESTED.
 
 ## Accepted decisions
-`.agents/supply/DECISIONS.md` lists what the user decided to leave as it is, and known limits. It has no line cap and is never pruned by age. Search it before "fixing" something that looks like a gap, and add an entry when the user says "leave it".
+`.agents/supply/DECISIONS.md` lists what the user decided to leave as it is, and known limits. It has no cap and nothing in it is ever deleted: a changed decision gets a new entry and the old one is marked `superseded by D-n`. Check its Index before "fixing" something that looks like a gap, and add an entry when the user says "leave it".
 
 ## Memory and notebook
+
+**IDs and tags.** Every memory line and every decision carries a label: `[M-042|auth|TASK-52]` in `MEMORY.md`, `D-017|auth|TASK-52` in `DECISIONS.md` (ID, one short area word, the task or `-`). IDs never change and are never reused, also after a line moves to the archive. Take the next ID from `Last IDs: M-n, D-n` near the top of `MEMORY.md` and update it in the same write. Task lines under **Open work** are labeled by their `TASK-N`. Point between files by ID (`see D-017`, `Related: M-042`) instead of copying text.
 
 **`MEMORY.md`: project state, max 800 words.** Every unit reads it at the start of every mission, so its size is paid many times.
 - Check the word count before and after every write (PowerShell: `(Get-Content .agents/supply/MEMORY.md -Raw).Split().Count`). Never go over 800.
 - Keep `Highest TASK number: N` near the top; update it with every new task.
 - One fact per line, about 200 characters max. Results, numbers and evidence go in the task file, never here.
-- While a feature is open: one line per task under it in **Open work**, at most about 20 words (`TASK-N short name: status`). When the feature is approved: replace those lines with one line under **Finished**.
-- When near the cap, shorten the oldest Finished lines first. Never prune open work or core conventions just because they are old.
+- While a feature is open: one line per task under it in **Open work**, at most about 20 words (`TASK-N short name: status`). When the feature is approved: replace those lines with one labeled line under **Finished**.
+- **At 700 words, ask before anything is removed.** An agent never trims or moves lines itself: it writes its line if it fits under 800 (otherwise it puts the line in its report) and reports `MEMORY.md at <n>/800 words`. Cutter asks the user: **(1) Archive** older lines (recommended: nothing is lost), **(2) Trim** lines no longer in the current task batch (deleted for good), or **(3) Both**. Only on the user's answer.
+- **Archive** = move whole lines, unchanged and with their IDs, to `.agents/supply/memory-archive/M-<first ID>.md` (oldest **Finished** lines and closed **Known issues** first; never open work or core conventions unless the user names them). One archive file holds up to 800 words; then start the next. Add or update one line per archive file in **Archive index**: file, ID range, areas, date.
+- **Reading the archive:** never read an archive file whole. Search it as plain text (not a regex) for the ID (`[M-042|`) or the area (`|auth|`) and read only the matching lines. Archive files are not loaded at session start.
 
 **Task files and evidence.** A task's **Result** and **Review** stay short (about 40 lines each). Long evidence (matrices, full tables, logs) goes in `.agents/tasks/evidence/TASK-N.md`, linked from the task, so later readers open it only when they need it.
 
-**`DECISIONS.md` is searched, not read whole.** Keep each entry's first line short and searchable: `<date> | <area> | <decision>`.
+**`DECISIONS.md` is read by its Index, never whole.** One Index line per decision, newest first: `D-n|area|TASK-n: decision (date)`. Grep the Index for the area, then read only the entries you need (`## D-n|`). Search as plain text, since `|` is special in a regex. Nothing is trimmed; a changed decision gets a new ID and the old one is marked `superseded by D-n` in the Index and its heading.
 
 **`NOTEBOOK.md`: session handoff, max 50 lines.**
 - Written only when the user asks ("write the notebook"). Each write replaces the whole file.

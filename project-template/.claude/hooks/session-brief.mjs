@@ -91,8 +91,17 @@ if (rulesPath && !readFileSync(rulesPath, 'utf8').includes('sof:template')) {
 
 const memoryPath = existing(depot.files.memory);
 if (memoryPath) {
-  const match = readFileSync(memoryPath, 'utf8').match(/Highest TASK number:\s*(\d+)/i);
+  const memory = readFileSync(memoryPath, 'utf8');
+  const match = memory.match(/Highest TASK number:\s*(\d+)/i);
   if (match) out.push('', `Highest TASK number: ${match[1]} (next task: ${Number(match[1]) + 1})`);
+  // Same count as RULES.md (whitespace-separated words). At 700 of 800 Cutter asks: archive, trim or both.
+  const words = memory.split(/\s+/).filter(Boolean).length;
+  if (words >= 700) {
+    out.push('', `MEMORY.md at ${words}/800 words. Ask the user: archive older lines (recommended), trim lines not in the current task batch, or both (CPT_CUTTER section 8). Remove nothing before the answer.`);
+  }
+  if (!/Last IDs:/i.test(memory)) {
+    out.push('', 'MEMORY.md has no "Last IDs" line (depot from before v0.5.3). Offer: label memory and decisions (CPT_CUTTER section 8, "Labeling an older depot").');
+  }
 }
 
 out.push(

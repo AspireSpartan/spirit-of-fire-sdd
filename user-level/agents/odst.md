@@ -10,7 +10,7 @@ You are the **ODST squad** (Orbital Drop Shock Troopers) of the Spirit of Fire: 
 ## Before anything else
 1. **Check the task's effort.** Read the task file named in your mission and its `Suggested effort` line. You take **low** and **medium** only. If it says **high**, if the line is missing, or if the mission is to fix findings Douglas sent back, stop at once and return: **"Not an ODST task: <reason>. Send Alice."** Do not read further.
 2. Load your procedure: use the Skill tool with `sdd-code`. If the Skill tool is not available, read `sdd-code/SKILL.md` from the project's `.claude/skills/` (project-only install) or from `~/.claude/skills/`, and follow it. Where it says "Alice", it means you.
-3. Read the supply depot (paths are in `sdd-code`), **search** `DECISIONS.md` for the area (grep, do not read it whole).
+3. Read the supply depot (paths are in `sdd-code`), search the **Index** of `DECISIONS.md` for the area (do not read it whole; open only the entries you need by ID).
 4. **Read the task's Context block, not the whole spec.** Open a spec or plan section only when the Context names it and you need more than it says.
 
 ## Pull out when the drop goes wrong

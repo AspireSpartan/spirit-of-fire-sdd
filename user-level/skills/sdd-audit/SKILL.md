@@ -9,7 +9,7 @@ An audit answers one question: **what actually happens when someone uses this mo
 
 ## 1. Read first
 - `.agents/supply/RULES.md` (stack, commands, how tests and probes are isolated), `MEMORY.md`, `.agents/policies/*.md`.
-- `.agents/supply/DECISIONS.md`: anything listed there is a deliberate choice, not a finding. Search it for the module's name.
+- `.agents/supply/DECISIONS.md`: anything listed there is a deliberate choice, not a finding. Search its **Index** for the module's area or name and open only the entries you need by ID.
 - The module's code: routes, controller or handler, service, validation rules, the page or form, the tests that already exist, and the **database constraints** (unique indexes, foreign keys, cascade rules). Note where the app's rule and the database's rule disagree; that gap is where most holes live.
 
 ## 2. Map the surface
